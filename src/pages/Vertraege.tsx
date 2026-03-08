@@ -1,7 +1,8 @@
 import { useStore } from "@/store/useStore";
 import { useNavigate } from "react-router-dom";
-import { FileText, AlertTriangle, CheckCircle } from "lucide-react";
+import { FileText, AlertTriangle, CheckCircle, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateVertragPDF } from "@/lib/generateVertragPDF";
 
 export default function Vertraege() {
   const { mitarbeiter } = useStore();
@@ -14,10 +15,9 @@ export default function Vertraege() {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold font-display text-foreground">Verträge</h1>
-        <p className="text-muted-foreground mt-1">Verträge verwalten und Kündigungen einsehen</p>
+        <p className="text-muted-foreground mt-1">Verträge verwalten, PDF erstellen und Kündigungen einsehen</p>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="stat-card flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -48,7 +48,6 @@ export default function Vertraege() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-card rounded-lg border overflow-hidden">
         <table className="w-full">
           <thead>
@@ -56,7 +55,7 @@ export default function Vertraege() {
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Mitarbeiter</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Position</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Eintritt</th>
-              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Std./Woche</th>
+              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Std./Monat</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Lohn/Std.</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Status</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Aktionen</th>
@@ -68,18 +67,20 @@ export default function Vertraege() {
                 <td className="p-4 font-medium text-foreground">{m.vorname} {m.nachname}</td>
                 <td className="p-4 text-muted-foreground">{m.position}</td>
                 <td className="p-4 text-muted-foreground">{m.eintrittsdatum}</td>
-                <td className="p-4 text-muted-foreground">{m.stundenProWoche}h</td>
+                <td className="p-4 text-muted-foreground">{m.monatlicheStunden}h</td>
                 <td className="p-4 text-muted-foreground">€{m.stundenlohn.toFixed(2)}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    m.vertragStatus === "aktiv" ? "bg-primary/10 text-primary"
-                      : "bg-destructive/10 text-destructive"
+                    m.vertragStatus === "aktiv" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
                   }`}>
                     {m.vertragStatus}
                     {m.kuendigungsdatum && ` (${m.kuendigungsdatum})`}
                   </span>
                 </td>
-                <td className="p-4">
+                <td className="p-4 flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => generateVertragPDF(m)} title="Vertrag als PDF">
+                    <FileDown className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => navigate(`/mitarbeiter/${m.id}`)}>
                     Details
                   </Button>
