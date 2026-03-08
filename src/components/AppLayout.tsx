@@ -1,11 +1,12 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Clock, Settings } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/mitarbeiter", label: "Mitarbeiter", icon: Users },
-  { path: "/rechnungen", label: "Rechnungen", icon: FileText },
+  { path: "/vertraege", label: "Verträge", icon: FileText },
+  { path: "/stunden", label: "Stunden", icon: Clock },
   { path: "/einstellungen", label: "Einstellungen", icon: Settings },
 ];
 
@@ -14,7 +15,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
       <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shrink-0">
         <div className="p-6 border-b border-sidebar-border">
           <h1 className="text-2xl font-bold font-display text-sidebar-primary">
@@ -42,8 +42,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
       </aside>
-
-      {/* Main content */}
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-6xl mx-auto animate-fade-in">
           {children}
