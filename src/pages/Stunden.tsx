@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useStore, VERTRAGSTYP_LABELS } from "@/store/useStore";
+import { useStore, VERTRAGSTYP_LABELS, MitarbeiterData } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, AlertTriangle, Wand2, Calendar } from "lucide-react";
+import { Plus, Trash2, Wand2, Calendar, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
-  StundenEintrag, calcHours, generateMonthEntries, validateEntry, getMonthSollStunden,
+  StundenEintrag, calcHours, generateMonthEntries, getMonthSollStunden,
 } from "@/lib/stundenUtils";
+import jsPDF from "jspdf";
 
 const now = new Date();
 const currentYear = now.getFullYear();
@@ -88,8 +89,6 @@ export default function Stunden() {
   // === Daily ===
   const handleDailyAdd = () => {
     if (!dailyForm.mitarbeiterId) return;
-    const w = validateEntry(dailyForm.startzeit, dailyForm.endzeit, Number(dailyForm.pause));
-    if (w.length > 0) { setDailyWarnings(w); return; }
     setStunden((prev) => [...prev, {
       id: Date.now(), mitarbeiterId: Number(dailyForm.mitarbeiterId),
       datum: dailyForm.datum, startzeit: dailyForm.startzeit,
@@ -169,6 +168,86 @@ export default function Stunden() {
     toast({ title: "Monat geloescht" });
   };
 
+  // === PDF Export ===
+  const exportPDF = (ma: MitarbeiterData) => {
+    const entries = stunden.filter((s) => s.mitarbeiterId === ma.id && s.datum.startsWith(monthPrefix));
+    if (entries.length === 0) {
+      toast({ title: "Keine Eintraege", description: "Keine Stunden fuer diesen Monat vorhanden.", variant: "destructive" });
+      return;
+    }
+    entries.sort((a, b) => a.datum.localeCompare(b.datum));
+    const totalHours = entries.reduce((sum, e) => sum + calcHours(e.startzeit, e.endzeit, e.pause), 0);
+    const sollHours = getMonthSollStunden(ma);
+
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const margin = 15;
+    let y = 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Arbeitszeitnachweis", margin, y);
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`${ma.vorname} ${ma.nachname}`, margin, y);
+    y += 6;
+    doc.text(`${MONTHS[viewMonth]} ${viewYear}`, margin, y);
+    y += 6;
+    doc.text(`Vertragstyp: ${VERTRAGSTYP_LABELS[ma.vertragstyp]}`, margin, y);
+    y += 10;
+
+    // Table header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Datum", margin, y);
+    doc.text("Von", margin + 30, y);
+    doc.text("Bis", margin + 50, y);
+    doc.text("Pause", margin + 70, y);
+    doc.text("Stunden", margin + 95, y);
+    doc.text("Notiz", margin + 120, y);
+    y += 2;
+    doc.line(margin, y, 195, y);
+    y += 5;
+
+    doc.setFont("helvetica", "normal");
+    for (const e of entries) {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      const hours = calcHours(e.startzeit, e.endzeit, e.pause);
+      const dayName = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][new Date(e.datum).getDay()];
+      doc.text(`${e.datum.split("-")[2]}.${e.datum.split("-")[1]}. ${dayName}`, margin, y);
+      doc.text(e.startzeit, margin + 30, y);
+      doc.text(e.endzeit, margin + 50, y);
+      doc.text(`${e.pause} Min`, margin + 70, y);
+      doc.text(`${hours.toFixed(1)}h`, margin + 95, y);
+      doc.text(e.notiz || "", margin + 120, y);
+      y += 6;
+    }
+
+    y += 5;
+    doc.line(margin, y, 195, y);
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Gesamt: ${totalHours.toFixed(1)} Stunden`, margin, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Soll: ${sollHours} Stunden`, margin, y);
+    y += 6;
+    const diff = totalHours - sollHours;
+    doc.text(`Differenz: ${diff >= 0 ? "+" : ""}${diff.toFixed(1)} Stunden`, margin, y);
+
+    y += 20;
+    doc.text("Unterschrift Arbeitnehmer: _________________________", margin, y);
+    y += 10;
+    doc.text("Unterschrift Arbeitgeber: _________________________", margin, y);
+
+    doc.save(`Stunden_${ma.nachname}_${ma.vorname}_${MONTHS[viewMonth]}_${viewYear}.pdf`);
+    toast({ title: "PDF heruntergeladen" });
+  };
+
   return (
     <div>
       {/* Header */}
@@ -223,11 +302,18 @@ export default function Stunden() {
                   {VERTRAGSTYP_LABELS[m.vertragstyp]}
                 </span>
               </div>
-              {m.entries > 0 && (
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteMonthForMA(m.id)} title="Alle Eintraege dieses Monats loeschen">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
+              <div className="flex gap-1">
+                {m.entries > 0 && (
+                  <>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => exportPDF(m)} title="Stunden als PDF">
+                      <FileDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => deleteMonthForMA(m.id)} title="Alle Eintraege dieses Monats loeschen">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="mt-3 flex items-end gap-2">
               <p className="text-2xl font-bold font-display text-primary">{m.totalHours.toFixed(1)}h</p>
@@ -267,7 +353,6 @@ export default function Stunden() {
             )}
             {filtered.map((s) => {
               const hours = calcHours(s.startzeit, s.endzeit, s.pause);
-              const warnings = validateEntry(s.startzeit, s.endzeit, s.pause);
               return (
                 <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="p-3 font-medium text-foreground">{s.datum.split("-")[2]}.{s.datum.split("-")[1]}.</td>
@@ -276,12 +361,7 @@ export default function Stunden() {
                   <td className="p-3 text-muted-foreground">{s.startzeit}</td>
                   <td className="p-3 text-muted-foreground">{s.endzeit}</td>
                   <td className="p-3 text-muted-foreground">{s.pause}m</td>
-                  <td className="p-3 font-medium text-foreground">
-                    {hours.toFixed(1)}h
-                    {warnings.length > 0 && (
-                      <span title={warnings.join("; ")}><AlertTriangle className="inline h-3 w-3 text-destructive ml-1" /></span>
-                    )}
-                  </td>
+                  <td className="p-3 font-medium text-foreground">{hours.toFixed(1)}h</td>
                   <td className="p-3">
                     <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => handleDelete(s.id)}>
                       <Trash2 className="h-3 w-3" />
@@ -319,13 +399,6 @@ export default function Stunden() {
               <div><Label>Pause</Label><Input type="number" value={dailyForm.pause} onChange={(e) => setDailyForm({ ...dailyForm, pause: e.target.value })} /></div>
             </div>
             <div><Label>Notiz</Label><Input value={dailyForm.notiz} onChange={(e) => setDailyForm({ ...dailyForm, notiz: e.target.value })} /></div>
-            {dailyWarnings.length > 0 && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 space-y-1">
-                {dailyWarnings.map((w, i) => (
-                  <p key={i} className="text-sm text-destructive flex items-center gap-2"><AlertTriangle className="h-4 w-4 shrink-0" /> {w}</p>
-                ))}
-              </div>
-            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDailyOpen(false)}>Abbrechen</Button>
               <Button onClick={handleDailyAdd}>Eintragen</Button>
