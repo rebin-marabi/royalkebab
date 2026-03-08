@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/store/useStore";
+import { generateVertragPDF } from "@/lib/generateVertragPDF";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,9 @@ export default function MitarbeiterDetail() {
           <p className="text-muted-foreground mt-1">{ma.position} · seit {ma.eintrittsdatum}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => generateVertragPDF(ma)}>
+            <FileDown className="h-4 w-4 mr-2" /> Vertrag als PDF
+          </Button>
           {ma.vertragStatus === "aktiv" ? (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -99,12 +103,9 @@ export default function MitarbeiterDetail() {
       <Section title="Persönliche Daten">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Field label="Geburtsdatum" value={ma.geburtsdatum} />
-          <Field label="Geburtsort" value={ma.geburtsort} />
-          <Field label="Nationalität" value={ma.nationalitaet} />
-          <Field label="Familienstand" value={ma.familienstand} />
           <Field label="Telefon" value={ma.telefon} />
           <Field label="E-Mail" value={ma.email} />
-          <Field label="Adresse" value={`${ma.adresse}, ${ma.plz} ${ma.ort}`} />
+          <Field label="Anschrift" value={`${ma.anschrift}, ${ma.plz} ${ma.ort}`} />
         </div>
       </Section>
 
@@ -121,8 +122,12 @@ export default function MitarbeiterDetail() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Field label="Eintrittsdatum" value={ma.eintrittsdatum} />
           <Field label="Position" value={ma.position} />
-          <Field label="Stunden/Woche" value={`${ma.stundenProWoche}h`} />
+          <Field label="Arbeitsort" value={ma.arbeitsort} />
+          <Field label="Monatliche Stunden" value={`${ma.monatlicheStunden}h`} />
           <Field label="Stundenlohn" value={`€${ma.stundenlohn.toFixed(2)}`} />
+          <Field label="Vertragsart" value={ma.vertragsart} />
+          <Field label="Probezeit" value={`${ma.probezeitMonate} Monate`} />
+          <Field label="Zusatzurlaub" value={`${ma.zusatzurlaub} Tage`} />
           <Field label="Vertragsstatus" value={ma.vertragStatus} />
           {ma.kuendigungsdatum && <Field label="Kündigungsdatum" value={ma.kuendigungsdatum} />}
         </div>
