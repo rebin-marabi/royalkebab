@@ -89,8 +89,6 @@ export default function Stunden() {
   // === Daily ===
   const handleDailyAdd = () => {
     if (!dailyForm.mitarbeiterId) return;
-    const w = validateEntry(dailyForm.startzeit, dailyForm.endzeit, Number(dailyForm.pause));
-    if (w.length > 0) { setDailyWarnings(w); return; }
     setStunden((prev) => [...prev, {
       id: Date.now(), mitarbeiterId: Number(dailyForm.mitarbeiterId),
       datum: dailyForm.datum, startzeit: dailyForm.startzeit,
