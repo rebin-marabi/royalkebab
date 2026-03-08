@@ -12,7 +12,7 @@ export default function Dashboard() {
   const stats = [
     { label: "Mitarbeiter aktiv", value: String(aktiv), icon: Users, sub: `${gekuendigt} gekündigt` },
     { label: "Verträge gesamt", value: String(mitarbeiter.length), icon: FileText, sub: "Alle Verträge" },
-    { label: "Ø Stunden/Woche", value: `${(mitarbeiter.reduce((s, m) => s + m.stundenProWoche, 0) / mitarbeiter.length).toFixed(0)}h`, icon: Clock, sub: "Pro Mitarbeiter" },
+    { label: "Ø Stunden/Monat", value: `${(mitarbeiter.reduce((s, m) => s + m.monatlicheStunden, 0) / mitarbeiter.length).toFixed(0)}h`, icon: Clock, sub: "Pro Mitarbeiter" },
     { label: "Lohnkosten/Std.", value: `€${(mitarbeiter.reduce((s, m) => s + m.stundenlohn, 0) / mitarbeiter.length).toFixed(2)}`, icon: TrendingUp, sub: "Durchschnitt" },
   ];
 

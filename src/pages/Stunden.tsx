@@ -101,7 +101,7 @@ export default function Stunden() {
           <div key={m.id} className="stat-card">
             <p className="font-medium text-foreground">{m.vorname} {m.nachname}</p>
             <p className="text-2xl font-bold font-display text-primary mt-1">{m.totalHours.toFixed(1)}h</p>
-            <p className="text-xs text-muted-foreground">{m.entries} Einträge · Soll: {m.stundenProWoche}h/Woche</p>
+            <p className="text-xs text-muted-foreground">{m.entries} Einträge · Soll: {m.monatlicheStunden}h/Monat</p>
           </div>
         ))}
       </div>
