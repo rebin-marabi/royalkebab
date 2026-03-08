@@ -317,10 +317,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus,
     }}>
       {children}
-    </StoreContext.Provider>
-  );
-      {children}
-    </StoreContext.Provider>
   );
 }
 
