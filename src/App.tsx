@@ -12,6 +12,7 @@ import Vertraege from "./pages/Vertraege";
 import Stunden from "./pages/Stunden";
 import Rechnungen from "./pages/Rechnungen";
 import Kontoauszuege from "./pages/Kontoauszuege";
+import Schulden from "./pages/Schulden";
 import Einstellungen from "./pages/Einstellungen";
 import NotFound from "./pages/NotFound";
 
