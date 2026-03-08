@@ -3,7 +3,7 @@ import { useStore } from "@/store/useStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Upload, Trash2, Eye, FileText, Image as ImageIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Trash2, Eye, FileText, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const MONTHS = [
@@ -18,16 +18,18 @@ export default function Rechnungen() {
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState("");
+
+  // Upload form state
   const [beschreibung, setBeschreibung] = useState("");
   const [betrag, setBetrag] = useState("");
+  const [rechnungsDatum, setRechnungsDatum] = useState(now.toISOString().slice(0, 10));
   const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const monatRechnungen = useMemo(() => {
     if (selectedMonth === null) return [];
     const prefix = `${year}-${String(selectedMonth + 1).padStart(2, "0")}`;
-    return rechnungen
-      .filter((r) => r.monat === prefix)
-      .sort((a, b) => b.id - a.id);
+    return rechnungen.filter((r) => r.monat === prefix).sort((a, b) => b.id - a.id);
   }, [rechnungen, selectedMonth, year]);
 
   const countPerMonth = useMemo(() => {
@@ -40,16 +42,33 @@ export default function Rechnungen() {
     return counts;
   }, [rechnungen, year]);
 
-  const handleUpload = () => {
-    const files = fileRef.current?.files;
-    if (!files || files.length === 0 || selectedMonth === null) return;
-    const prefix = `${year}-${String(selectedMonth + 1).padStart(2, "0")}`;
+  const sumPerMonth = useMemo(() => {
+    const sums: Record<string, number> = {};
+    for (const r of rechnungen) {
+      if (r.monat.startsWith(`${year}-`) && r.betrag !== undefined) {
+        sums[r.monat] = (sums[r.monat] || 0) + r.betrag;
+      }
+    }
+    return sums;
+  }, [rechnungen, year]);
 
-    Array.from(files).forEach((file) => {
+  const handleFilesSelected = () => {
+    const files = fileRef.current?.files;
+    if (!files || files.length === 0) return;
+    setPendingFiles(Array.from(files));
+  };
+
+  const handleUpload = () => {
+    if (pendingFiles.length === 0) return;
+    // Derive month from rechnungsDatum
+    const [y, m] = rechnungsDatum.split("-");
+    const monat = `${y}-${m}`;
+
+    pendingFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         addRechnung({
-          monat: prefix,
+          monat,
           dateiName: file.name,
           dateiTyp: file.type,
           dateiData: reader.result as string,
@@ -61,9 +80,12 @@ export default function Rechnungen() {
       reader.readAsDataURL(file);
     });
 
+    // Reset
+    setPendingFiles([]);
     if (fileRef.current) fileRef.current.value = "";
     setBeschreibung("");
     setBetrag("");
+    setRechnungsDatum(now.toISOString().slice(0, 10));
   };
 
   const openPreview = (url: string, name: string) => {
@@ -76,8 +98,76 @@ export default function Rechnungen() {
     return (
       <div>
         <h1 className="text-3xl font-bold font-display text-foreground mb-2">Einkommende Rechnungen</h1>
-        <p className="text-muted-foreground mb-6">Rechnungen nach Monat verwalten und hochladen</p>
+        <p className="text-muted-foreground mb-6">Rechnungen hochladen – werden automatisch dem Monat zugeordnet</p>
 
+        {/* Upload area – always visible on overview */}
+        <Card className="mb-8">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Rechnung hochladen</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Rechnungsdatum</label>
+                <Input
+                  type="date"
+                  value={rechnungsDatum}
+                  onChange={(e) => setRechnungsDatum(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Beschreibung / Label</label>
+                <Input
+                  placeholder="z.B. Strom, Miete, Lieferant..."
+                  value={beschreibung}
+                  onChange={(e) => setBeschreibung(e.target.value)}
+                />
+              </div>
+              <div className="w-32 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Betrag €</label>
+                <Input
+                  placeholder="0.00"
+                  type="number"
+                  step="0.01"
+                  value={betrag}
+                  onChange={(e) => setBetrag(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                className="hidden"
+                onChange={handleFilesSelected}
+              />
+              <Button variant="outline" onClick={() => fileRef.current?.click()}>
+                Datei wählen
+              </Button>
+              {pendingFiles.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {pendingFiles.map((f) => f.name).join(", ")}
+                </span>
+              )}
+              <div className="ml-auto">
+                <Button onClick={handleUpload} disabled={pendingFiles.length === 0 || !rechnungsDatum}>
+                  <Upload className="h-4 w-4 mr-2" /> Hochladen
+                </Button>
+              </div>
+            </div>
+            {rechnungsDatum && (
+              <p className="text-xs text-muted-foreground">
+                → Wird einsortiert in: <span className="font-semibold text-foreground">
+                  {MONTHS[parseInt(rechnungsDatum.split("-")[1], 10) - 1]} {rechnungsDatum.split("-")[0]}
+                </span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Year navigation */}
         <div className="flex items-center gap-4 mb-6">
           <Button variant="outline" size="icon" onClick={() => setYear((y) => y - 1)}>
             <ChevronLeft className="h-4 w-4" />
@@ -92,6 +182,7 @@ export default function Rechnungen() {
           {MONTHS.map((name, i) => {
             const key = `${year}-${String(i + 1).padStart(2, "0")}`;
             const count = countPerMonth[key] || 0;
+            const sum = sumPerMonth[key];
             return (
               <Card
                 key={i}
@@ -103,6 +194,9 @@ export default function Rechnungen() {
                   <p className="text-sm text-muted-foreground mt-1">
                     {count === 0 ? "Keine Rechnungen" : `${count} Rechnung${count > 1 ? "en" : ""}`}
                   </p>
+                  {sum !== undefined && sum > 0 && (
+                    <p className="text-sm font-semibold text-primary mt-1">{sum.toFixed(2)} €</p>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -113,56 +207,27 @@ export default function Rechnungen() {
   }
 
   // Month detail view
+  const monthSum = monatRechnungen.reduce((s, r) => s + (r.betrag || 0), 0);
+
   return (
     <div>
       <Button variant="ghost" onClick={() => setSelectedMonth(null)} className="mb-4 -ml-2">
         <ChevronLeft className="h-4 w-4 mr-1" /> Zurück zur Übersicht
       </Button>
 
-      <h1 className="text-3xl font-bold font-display text-foreground mb-2">
-        {MONTHS[selectedMonth]} {year}
-      </h1>
-      <p className="text-muted-foreground mb-6">
-        {monatRechnungen.length} Rechnung{monatRechnungen.length !== 1 ? "en" : ""}
-      </p>
-
-      {/* Upload area */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Rechnung hochladen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,.pdf"
-              multiple
-              className="hidden"
-              onChange={() => {
-                if (fileRef.current?.files?.length) handleUpload();
-              }}
-            />
-            <Input
-              placeholder="Beschreibung (optional)"
-              value={beschreibung}
-              onChange={(e) => setBeschreibung(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Betrag €"
-              type="number"
-              step="0.01"
-              value={betrag}
-              onChange={(e) => setBetrag(e.target.value)}
-              className="w-32"
-            />
-            <Button onClick={() => fileRef.current?.click()}>
-              <Upload className="h-4 w-4 mr-2" /> Hochladen
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-baseline justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold font-display text-foreground">
+            {MONTHS[selectedMonth]} {year}
+          </h1>
+          <p className="text-muted-foreground">
+            {monatRechnungen.length} Rechnung{monatRechnungen.length !== 1 ? "en" : ""}
+          </p>
+        </div>
+        {monthSum > 0 && (
+          <p className="text-2xl font-bold text-primary">{monthSum.toFixed(2)} €</p>
+        )}
+      </div>
 
       {/* Rechnungen list */}
       {monatRechnungen.length === 0 ? (
@@ -184,19 +249,15 @@ export default function Rechnungen() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{r.dateiName}</p>
+                  <p className="font-medium truncate">{r.beschreibung || r.dateiName}</p>
                   <div className="flex gap-3 text-sm text-muted-foreground">
-                    {r.beschreibung && <span>{r.beschreibung}</span>}
-                    {r.betrag !== undefined && <span>{r.betrag.toFixed(2)} €</span>}
+                    <span>{r.dateiName}</span>
+                    {r.betrag !== undefined && <span className="font-semibold">{r.betrag.toFixed(2)} €</span>}
                     <span>{new Date(r.hochgeladenAm).toLocaleDateString("de-DE")}</span>
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openPreview(r.dateiData, r.dateiName)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => openPreview(r.dateiData, r.dateiName)}>
                     <Eye className="h-4 w-4" />
                   </Button>
                   <Button
