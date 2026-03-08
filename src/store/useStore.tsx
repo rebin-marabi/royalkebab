@@ -54,6 +54,26 @@ export interface KontoauszugData {
   hochgeladenAm: string;
 }
 
+export interface RateZahlung {
+  id: number;
+  datum: string;
+  betrag: number;
+  notiz: string;
+}
+
+export interface SchuldenData {
+  id: number;
+  bezeichnung: string;
+  beschreibung: string;
+  gesamtbetrag: number;
+  ratenBetrag: number;
+  startDatum: string;
+  faelligkeitTag: number; // Tag im Monat (1-28)
+  intervall: "monatlich" | "vierteljaehrlich" | "jaehrlich";
+  zahlungen: RateZahlung[];
+  status: "aktiv" | "abgeschlossen";
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
@@ -205,6 +225,11 @@ interface StoreContextType {
   kontoauszuege: KontoauszugData[];
   addKontoauszug: (k: Omit<KontoauszugData, "id">) => void;
   deleteKontoauszug: (id: number) => void;
+  schulden: SchuldenData[];
+  addSchulden: (s: Omit<SchuldenData, "id">) => void;
+  deleteSchulden: (id: number) => void;
+  addZahlung: (schuldenId: number, zahlung: RateZahlung) => void;
+  updateSchuldenStatus: (id: number, status: SchuldenData["status"]) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
@@ -223,6 +248,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
   const [rechnungen, setRechnungen] = useState<RechnungData[]>([]);
   const [kontoauszuege, setKontoauszuege] = useState<KontoauszugData[]>([]);
+  const [schulden, setSchulden] = useState<SchuldenData[]>([]);
 
   const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
@@ -264,6 +290,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setKontoauszuege((prev) => prev.filter((k) => k.id !== id));
   }, []);
 
+  const addSchulden = useCallback((s: Omit<SchuldenData, "id">) => {
+    setSchulden((prev) => [...prev, { ...s, id: Date.now() }]);
+  }, []);
+
+  const deleteSchulden = useCallback((id: number) => {
+    setSchulden((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const addZahlung = useCallback((schuldenId: number, zahlung: RateZahlung) => {
+    setSchulden((prev) => prev.map((s) => s.id === schuldenId ? { ...s, zahlungen: [...s.zahlungen, zahlung] } : s));
+  }, []);
+
+  const updateSchuldenStatus = useCallback((id: number, status: SchuldenData["status"]) => {
+    setSchulden((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -272,6 +314,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
       kontoauszuege, addKontoauszug, deleteKontoauszug,
+      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus,
     }}>
       {children}
     </StoreContext.Provider>
