@@ -256,6 +256,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setRechnungen((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
+  const addKontoauszug = useCallback((k: Omit<KontoauszugData, "id">) => {
+    setKontoauszuege((prev) => [...prev, { ...k, id: Date.now() }]);
+  }, []);
+
+  const deleteKontoauszug = useCallback((id: number) => {
+    setKontoauszuege((prev) => prev.filter((k) => k.id !== id));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -263,6 +271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       vorlagen, updateVorlage,
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
+      kontoauszuege, addKontoauszug, deleteKontoauszug,
     }}>
       {children}
     </StoreContext.Provider>
