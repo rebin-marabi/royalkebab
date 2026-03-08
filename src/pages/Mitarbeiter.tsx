@@ -4,20 +4,12 @@ import { Plus, Search, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStore, MitarbeiterData } from "@/store/useStore";
+import { useStore, MitarbeiterData, Vertragstyp, VERTRAGSTYP_LABELS } from "@/store/useStore";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
 type FormData = Omit<MitarbeiterData, "id">;
@@ -29,7 +21,8 @@ const emptyForm: FormData = {
   steuerID: "", sozialversicherungsnr: "", krankenkasse: "", iban: "",
   eintrittsdatum: "", position: "Mitarbeiter im Imbissbetrieb",
   arbeitsort: "Augsburger Str. 3, 01309 Dresden",
-  monatlicheStunden: 9, stundenlohn: 13, probezeitMonate: 6, zusatzurlaub: 0,
+  vertragstyp: "minijob", monatlicheStunden: 9, stundenlohn: 13,
+  probezeitMonate: 6, zusatzurlaub: 0,
   vertragsart: "unbefristet",
   vertragStatus: "aktiv", status: "aktiv",
 };
@@ -61,7 +54,7 @@ export default function Mitarbeiter() {
 
   const steps = [
     {
-      title: "Persönliche Daten",
+      title: "Persoenliche Daten",
       content: (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -69,7 +62,7 @@ export default function Mitarbeiter() {
             <div><Label>Nachname *</Label><Input value={form.nachname} onChange={(e) => u("nachname", e.target.value)} placeholder="Nachname" /></div>
           </div>
           <div><Label>Geburtsdatum</Label><Input type="date" value={form.geburtsdatum} onChange={(e) => u("geburtsdatum", e.target.value)} /></div>
-          <div><Label>Anschrift (Straße, Hausnr.)</Label><Input value={form.anschrift} onChange={(e) => u("anschrift", e.target.value)} placeholder="z.B. Blasewitzer Str. 36 F" /></div>
+          <div><Label>Anschrift (Strasse, Hausnr.)</Label><Input value={form.anschrift} onChange={(e) => u("anschrift", e.target.value)} placeholder="z.B. Blasewitzer Str. 36 F" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label>PLZ</Label><Input value={form.plz} onChange={(e) => u("plz", e.target.value)} placeholder="01307" /></div>
             <div><Label>Ort</Label><Input value={form.ort} onChange={(e) => u("ort", e.target.value)} placeholder="Dresden" /></div>
@@ -96,9 +89,20 @@ export default function Mitarbeiter() {
       title: "Vertragsdaten",
       content: (
         <div className="space-y-4">
+          <div>
+            <Label>Vertragstyp *</Label>
+            <Select value={form.vertragstyp} onValueChange={(v) => u("vertragstyp", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minijob">Minijob</SelectItem>
+                <SelectItem value="teilzeit">Teilzeit</SelectItem>
+                <SelectItem value="vollzeit">Vollzeit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div><Label>Eintrittsdatum *</Label><Input type="date" value={form.eintrittsdatum} onChange={(e) => u("eintrittsdatum", e.target.value)} /></div>
-          <div><Label>Position / Tätigkeit</Label><Input value={form.position} onChange={(e) => u("position", e.target.value)} placeholder="Mitarbeiter im Imbissbetrieb" /></div>
-          <div><Label>Arbeitsort</Label><Input value={form.arbeitsort} onChange={(e) => u("arbeitsort", e.target.value)} placeholder="Augsburger Str. 3, 01309 Dresden" /></div>
+          <div><Label>Position / Taetigkeit</Label><Input value={form.position} onChange={(e) => u("position", e.target.value)} placeholder="Mitarbeiter im Imbissbetrieb" /></div>
+          <div><Label>Arbeitsort</Label><Input value={form.arbeitsort} onChange={(e) => u("arbeitsort", e.target.value)} /></div>
           <div>
             <Label>Vertragsart</Label>
             <Select value={form.vertragsart} onValueChange={(v) => u("vertragsart", v)}>
@@ -110,12 +114,30 @@ export default function Mitarbeiter() {
             </Select>
           </div>
           {form.vertragsart === "befristet" && (
-            <div><Label>Befristet bis</Label><Input type="date" value={form.befristetBis || ""} onChange={(e) => u("befristetBis" as keyof FormData, e.target.value)} /></div>
+            <div><Label>Befristet bis</Label><Input type="date" value={form.befristetBis || ""} onChange={(e) => setForm({ ...form, befristetBis: e.target.value })} /></div>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Monatliche Stunden</Label><Input type="number" step="0.5" value={form.monatlicheStunden || ""} onChange={(e) => u("monatlicheStunden", Number(e.target.value))} /></div>
-            <div><Label>Stundenlohn (€)</Label><Input type="number" step="0.5" value={form.stundenlohn || ""} onChange={(e) => u("stundenlohn", Number(e.target.value))} /></div>
-          </div>
+
+          {form.vertragstyp === "minijob" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Monatliche Stunden</Label><Input type="number" step="0.5" value={form.monatlicheStunden || ""} onChange={(e) => u("monatlicheStunden", Number(e.target.value))} /></div>
+              <div><Label>Stundenlohn (EUR)</Label><Input type="number" step="0.5" value={form.stundenlohn || ""} onChange={(e) => u("stundenlohn", Number(e.target.value))} /></div>
+            </div>
+          )}
+
+          {form.vertragstyp === "teilzeit" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Wochenstunden</Label><Input type="number" step="0.5" value={form.wochenStunden || ""} onChange={(e) => u("wochenStunden" as keyof FormData, Number(e.target.value))} /></div>
+              <div><Label>Stundenlohn (EUR)</Label><Input type="number" step="0.5" value={form.stundenlohn || ""} onChange={(e) => u("stundenlohn", Number(e.target.value))} /></div>
+            </div>
+          )}
+
+          {form.vertragstyp === "vollzeit" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Wochenstunden</Label><Input type="number" value={form.wochenStunden || 40} onChange={(e) => u("wochenStunden" as keyof FormData, Number(e.target.value))} /></div>
+              <div><Label>Monatsgehalt (EUR brutto)</Label><Input type="number" step="50" value={form.monatsgehalt || ""} onChange={(e) => u("monatsgehalt" as keyof FormData, Number(e.target.value))} /></div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Probezeit (Monate)</Label><Input type="number" value={form.probezeitMonate || ""} onChange={(e) => u("probezeitMonate", Number(e.target.value))} /></div>
             <div><Label>Zusatzurlaub (Tage)</Label><Input type="number" value={form.zusatzurlaub} onChange={(e) => u("zusatzurlaub", Number(e.target.value))} /></div>
@@ -148,7 +170,7 @@ export default function Mitarbeiter() {
             </div>
             <div className="mt-4">{steps[step].content}</div>
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Zurück</Button>
+              <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Zurueck</Button>
               {step < steps.length - 1 ? (
                 <Button onClick={() => setStep(step + 1)}>Weiter</Button>
               ) : (
@@ -170,9 +192,9 @@ export default function Mitarbeiter() {
             <tr className="border-b bg-muted/50">
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Name</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Position</th>
-              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Std./Monat</th>
+              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Vertragstyp</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Eintritt</th>
-              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Vertrag</th>
+              <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Status</th>
               <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Aktionen</th>
             </tr>
           </thead>
@@ -181,7 +203,11 @@ export default function Mitarbeiter() {
               <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="p-4 font-medium text-foreground">{m.vorname} {m.nachname}</td>
                 <td className="p-4 text-muted-foreground">{m.position}</td>
-                <td className="p-4 text-muted-foreground">{m.monatlicheStunden}h</td>
+                <td className="p-4">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                    {VERTRAGSTYP_LABELS[m.vertragstyp]}
+                  </span>
+                </td>
                 <td className="p-4 text-muted-foreground">{m.eintrittsdatum}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
