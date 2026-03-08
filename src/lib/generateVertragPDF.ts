@@ -60,7 +60,7 @@ export function generateVertragPDF(ma: MitarbeiterData) {
   doc.setFont("helvetica", "normal");
   para(arbeitgeber.adresse);
   para(`Vertreten durch: ${arbeitgeber.vertreter}`);
-  para("– nachfolgend „Arbeitgeber" –");
+  para('-- nachfolgend "Arbeitgeber" --');
   gap(3);
   para("und");
   gap(1);
