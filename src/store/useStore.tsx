@@ -202,6 +202,9 @@ interface StoreContextType {
   rechnungen: RechnungData[];
   addRechnung: (r: Omit<RechnungData, "id">) => void;
   deleteRechnung: (id: number) => void;
+  kontoauszuege: KontoauszugData[];
+  addKontoauszug: (k: Omit<KontoauszugData, "id">) => void;
+  deleteKontoauszug: (id: number) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
