@@ -392,13 +392,6 @@ export default function Stunden() {
               <div><Label>Pause</Label><Input type="number" value={dailyForm.pause} onChange={(e) => setDailyForm({ ...dailyForm, pause: e.target.value })} /></div>
             </div>
             <div><Label>Notiz</Label><Input value={dailyForm.notiz} onChange={(e) => setDailyForm({ ...dailyForm, notiz: e.target.value })} /></div>
-            {dailyWarnings.length > 0 && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 space-y-1">
-                {dailyWarnings.map((w, i) => (
-                  <p key={i} className="text-sm text-destructive flex items-center gap-2"><AlertTriangle className="h-4 w-4 shrink-0" /> {w}</p>
-                ))}
-              </div>
-            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDailyOpen(false)}>Abbrechen</Button>
               <Button onClick={handleDailyAdd}>Eintragen</Button>
