@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { StundenEintrag } from "@/lib/stundenUtils";
 export type Vertragstyp = "minijob" | "teilzeit" | "vollzeit";
 
 export interface MitarbeiterData {
@@ -173,7 +173,19 @@ interface StoreContextType {
   setArbeitgeber: (data: ArbeitgeberDaten) => void;
   vorlagen: VertragsVorlage[];
   updateVorlage: (typ: Vertragstyp, vorlage: VertragsVorlage) => void;
+  stunden: StundenEintrag[];
+  setStunden: React.Dispatch<React.SetStateAction<StundenEintrag[]>>;
+  addStunden: (entries: StundenEintrag[]) => void;
+  deleteStunde: (id: number) => void;
+  deleteStundenForMonth: (maId: number, monthPrefix: string) => void;
 }
+
+const initialStunden: StundenEintrag[] = [
+  { id: 1, mitarbeiterId: 1, datum: "2026-03-08", startzeit: "10:00", endzeit: "18:00", pause: 30, notiz: "" },
+  { id: 2, mitarbeiterId: 2, datum: "2026-03-08", startzeit: "11:00", endzeit: "14:00", pause: 0, notiz: "" },
+  { id: 3, mitarbeiterId: 1, datum: "2026-03-07", startzeit: "10:00", endzeit: "18:30", pause: 30, notiz: "" },
+  { id: 4, mitarbeiterId: 3, datum: "2026-03-07", startzeit: "12:00", endzeit: "20:00", pause: 45, notiz: "" },
+];
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
@@ -181,21 +193,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [mitarbeiter, setMitarbeiter] = useState<MitarbeiterData[]>(initialData);
   const [arbeitgeber, setArbeitgeber] = useState<ArbeitgeberDaten>(defaultArbeitgeber);
   const [vorlagen, setVorlagen] = useState<VertragsVorlage[]>(createVorlagen());
+  const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
 
-  const addMitarbeiter = (ma: Omit<MitarbeiterData, "id">) => {
+  const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
-  };
+  }, []);
 
-  const updateMitarbeiter = (id: number, data: Partial<MitarbeiterData>) => {
+  const updateMitarbeiter = useCallback((id: number, data: Partial<MitarbeiterData>) => {
     setMitarbeiter((prev) => prev.map((m) => (m.id === id ? { ...m, ...data } : m)));
-  };
+  }, []);
 
-  const updateVorlage = (typ: Vertragstyp, vorlage: VertragsVorlage) => {
+  const updateVorlage = useCallback((typ: Vertragstyp, vorlage: VertragsVorlage) => {
     setVorlagen((prev) => prev.map((v) => (v.typ === typ ? vorlage : v)));
-  };
+  }, []);
+
+  const addStunden = useCallback((entries: StundenEintrag[]) => {
+    setStunden((prev) => [...prev, ...entries]);
+  }, []);
+
+  const deleteStunde = useCallback((id: number) => {
+    setStunden((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const deleteStundenForMonth = useCallback((maId: number, monthPrefix: string) => {
+    setStunden((prev) => prev.filter((s) => !(s.mitarbeiterId === maId && s.datum.startsWith(monthPrefix))));
+  }, []);
 
   return (
-    <StoreContext.Provider value={{ mitarbeiter, addMitarbeiter, updateMitarbeiter, arbeitgeber, setArbeitgeber, vorlagen, updateVorlage }}>
+    <StoreContext.Provider value={{
+      mitarbeiter, addMitarbeiter, updateMitarbeiter,
+      arbeitgeber, setArbeitgeber,
+      vorlagen, updateVorlage,
+      stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
+    }}>
       {children}
     </StoreContext.Provider>
   );
