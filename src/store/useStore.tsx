@@ -234,12 +234,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setStunden((prev) => prev.filter((s) => !(s.mitarbeiterId === maId && s.datum.startsWith(monthPrefix))));
   }, []);
 
+  const addRechnung = useCallback((r: Omit<RechnungData, "id">) => {
+    setRechnungen((prev) => [...prev, { ...r, id: Date.now() }]);
+  }, []);
+
+  const deleteRechnung = useCallback((id: number) => {
+    setRechnungen((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
       arbeitgeber, setArbeitgeber,
       vorlagen, updateVorlage,
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
+      rechnungen, addRechnung, deleteRechnung,
     }}>
       {children}
     </StoreContext.Provider>
