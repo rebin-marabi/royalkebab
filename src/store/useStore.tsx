@@ -61,16 +61,26 @@ export interface RateZahlung {
   notiz: string;
 }
 
+export interface MonatStatus {
+  monat: string; // "YYYY-MM"
+  bezahlt: boolean;
+  datum?: string; // Wann bezahlt
+}
+
+export type SchuldenKategorie = "miete" | "rate" | "kredit" | "versicherung" | "sonstiges";
+
 export interface SchuldenData {
   id: number;
   bezeichnung: string;
   beschreibung: string;
+  kategorie: SchuldenKategorie;
   gesamtbetrag: number;
   ratenBetrag: number;
   startDatum: string;
   faelligkeitTag: number; // Tag im Monat (1-28)
   intervall: "monatlich" | "vierteljaehrlich" | "jaehrlich";
   zahlungen: RateZahlung[];
+  monatsStatus: MonatStatus[];
   status: "aktiv" | "abgeschlossen";
 }
 
