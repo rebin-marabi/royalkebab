@@ -290,6 +290,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setKontoauszuege((prev) => prev.filter((k) => k.id !== id));
   }, []);
 
+  const addSchulden = useCallback((s: Omit<SchuldenData, "id">) => {
+    setSchulden((prev) => [...prev, { ...s, id: Date.now() }]);
+  }, []);
+
+  const deleteSchulden = useCallback((id: number) => {
+    setSchulden((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const addZahlung = useCallback((schuldenId: number, zahlung: RateZahlung) => {
+    setSchulden((prev) => prev.map((s) => s.id === schuldenId ? { ...s, zahlungen: [...s.zahlungen, zahlung] } : s));
+  }, []);
+
+  const updateSchuldenStatus = useCallback((id: number, status: SchuldenData["status"]) => {
+    setSchulden((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -298,7 +314,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
       kontoauszuege, addKontoauszug, deleteKontoauszug,
+      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus,
     }}>
+      {children}
+    </StoreContext.Provider>
+  );
       {children}
     </StoreContext.Provider>
   );
