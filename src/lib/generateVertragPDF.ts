@@ -69,7 +69,7 @@ export function generateVertragPDF(ma: MitarbeiterData) {
   doc.setFont("helvetica", "normal");
   para(`Anschrift: ${ma.anschrift}, ${ma.plz} ${ma.ort}`);
   para(`Geburtsdatum: ${formatDate(ma.geburtsdatum)}`);
-  para("– nachfolgend „Arbeitnehmer" –");
+  para('-- nachfolgend "Arbeitnehmer" --');
   gap(3);
   para("Es wird folgender Arbeitsvertrag geschlossen:");
 
