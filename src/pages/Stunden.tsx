@@ -346,7 +346,6 @@ export default function Stunden() {
             )}
             {filtered.map((s) => {
               const hours = calcHours(s.startzeit, s.endzeit, s.pause);
-              const warnings = validateEntry(s.startzeit, s.endzeit, s.pause);
               return (
                 <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="p-3 font-medium text-foreground">{s.datum.split("-")[2]}.{s.datum.split("-")[1]}.</td>
@@ -355,12 +354,7 @@ export default function Stunden() {
                   <td className="p-3 text-muted-foreground">{s.startzeit}</td>
                   <td className="p-3 text-muted-foreground">{s.endzeit}</td>
                   <td className="p-3 text-muted-foreground">{s.pause}m</td>
-                  <td className="p-3 font-medium text-foreground">
-                    {hours.toFixed(1)}h
-                    {warnings.length > 0 && (
-                      <span title={warnings.join("; ")}><AlertTriangle className="inline h-3 w-3 text-destructive ml-1" /></span>
-                    )}
-                  </td>
+                  <td className="p-3 font-medium text-foreground">{hours.toFixed(1)}h</td>
                   <td className="p-3">
                     <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => handleDelete(s.id)}>
                       <Trash2 className="h-3 w-3" />
