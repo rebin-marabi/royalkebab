@@ -240,6 +240,7 @@ interface StoreContextType {
   deleteSchulden: (id: number) => void;
   addZahlung: (schuldenId: number, zahlung: RateZahlung) => void;
   updateSchuldenStatus: (id: number, status: SchuldenData["status"]) => void;
+  toggleMonatStatus: (schuldenId: number, monat: string) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
