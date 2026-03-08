@@ -44,6 +44,16 @@ export interface RechnungData {
   hochgeladenAm: string;
 }
 
+export interface KontoauszugData {
+  id: number;
+  monat: string;
+  dateiName: string;
+  dateiTyp: string;
+  dateiData: string;
+  beschreibung: string;
+  hochgeladenAm: string;
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
