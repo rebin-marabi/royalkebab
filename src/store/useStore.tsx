@@ -33,6 +33,17 @@ export interface MitarbeiterData {
   status: "aktiv" | "inaktiv";
 }
 
+export interface RechnungData {
+  id: number;
+  monat: string; // "YYYY-MM"
+  dateiName: string;
+  dateiTyp: string;
+  dateiData: string; // base64
+  beschreibung: string;
+  betrag?: number;
+  hochgeladenAm: string;
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
