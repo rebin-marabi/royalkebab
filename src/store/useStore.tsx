@@ -189,6 +189,9 @@ interface StoreContextType {
   addStunden: (entries: StundenEintrag[]) => void;
   deleteStunde: (id: number) => void;
   deleteStundenForMonth: (maId: number, monthPrefix: string) => void;
+  rechnungen: RechnungData[];
+  addRechnung: (r: Omit<RechnungData, "id">) => void;
+  deleteRechnung: (id: number) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
