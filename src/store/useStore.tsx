@@ -260,7 +260,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
   const [rechnungen, setRechnungen] = useState<RechnungData[]>([]);
   const [kontoauszuege, setKontoauszuege] = useState<KontoauszugData[]>([]);
-  const [schulden, setSchulden] = useState<SchuldenData[]>([]);
+  const [schulden, setSchulden] = useState<SchuldenData[]>([
+    {
+      id: 1, bezeichnung: "Miete Laden", beschreibung: "Augsburger Str. 3", kategorie: "miete",
+      gesamtbetrag: 0, ratenBetrag: 1200, startDatum: "2025-01-01", faelligkeitTag: 1,
+      intervall: "monatlich", zahlungen: [], status: "aktiv",
+      monatsStatus: [
+        { monat: "2025-01", bezahlt: true, datum: "2025-01-01" },
+        { monat: "2025-02", bezahlt: true, datum: "2025-02-01" },
+        { monat: "2025-03", bezahlt: true, datum: "2025-03-03" },
+        { monat: "2025-04", bezahlt: true, datum: "2025-04-01" },
+        { monat: "2025-05", bezahlt: true, datum: "2025-05-02" },
+        { monat: "2025-06", bezahlt: true, datum: "2025-06-01" },
+        { monat: "2025-07", bezahlt: true, datum: "2025-07-01" },
+        { monat: "2025-08", bezahlt: true, datum: "2025-08-01" },
+        { monat: "2025-09", bezahlt: true, datum: "2025-09-01" },
+        { monat: "2025-10", bezahlt: true, datum: "2025-10-01" },
+        { monat: "2025-11", bezahlt: true, datum: "2025-11-03" },
+        { monat: "2025-12", bezahlt: true, datum: "2025-12-01" },
+        { monat: "2026-01", bezahlt: true, datum: "2026-01-02" },
+        { monat: "2026-02", bezahlt: true, datum: "2026-02-01" },
+      ],
+    },
+    {
+      id: 2, bezeichnung: "Ratenzahlung Kühlschrank", beschreibung: "Gastro-Kühlschrank 2-türig", kategorie: "rate",
+      gesamtbetrag: 2400, ratenBetrag: 200, startDatum: "2025-06-01", faelligkeitTag: 15,
+      intervall: "monatlich", zahlungen: [], status: "aktiv",
+      monatsStatus: [
+        { monat: "2025-06", bezahlt: true, datum: "2025-06-15" },
+        { monat: "2025-07", bezahlt: true, datum: "2025-07-15" },
+        { monat: "2025-08", bezahlt: true, datum: "2025-08-15" },
+        { monat: "2025-09", bezahlt: true, datum: "2025-09-15" },
+        { monat: "2025-10", bezahlt: true, datum: "2025-10-15" },
+        { monat: "2025-11", bezahlt: true, datum: "2025-11-15" },
+        { monat: "2025-12", bezahlt: true, datum: "2025-12-15" },
+        { monat: "2026-01", bezahlt: true, datum: "2026-01-15" },
+        { monat: "2026-02", bezahlt: true, datum: "2026-02-15" },
+      ],
+    },
+    {
+      id: 3, bezeichnung: "Versicherung Laden", beschreibung: "Haftpflicht + Inventar", kategorie: "versicherung",
+      gesamtbetrag: 0, ratenBetrag: 89.90, startDatum: "2025-01-01", faelligkeitTag: 5,
+      intervall: "monatlich", zahlungen: [], status: "aktiv",
+      monatsStatus: [
+        { monat: "2025-01", bezahlt: true, datum: "2025-01-05" },
+        { monat: "2025-02", bezahlt: true, datum: "2025-02-05" },
+        { monat: "2025-03", bezahlt: true, datum: "2025-03-05" },
+        { monat: "2025-04", bezahlt: true, datum: "2025-04-05" },
+        { monat: "2025-05", bezahlt: true, datum: "2025-05-05" },
+        { monat: "2025-06", bezahlt: true, datum: "2025-06-05" },
+        { monat: "2025-07", bezahlt: true, datum: "2025-07-05" },
+        { monat: "2025-08", bezahlt: true, datum: "2025-08-05" },
+        { monat: "2025-09", bezahlt: true, datum: "2025-09-05" },
+        { monat: "2025-10", bezahlt: true, datum: "2025-10-05" },
+        { monat: "2025-11", bezahlt: true, datum: "2025-11-05" },
+        { monat: "2025-12", bezahlt: true, datum: "2025-12-05" },
+        { monat: "2026-01", bezahlt: true, datum: "2026-01-05" },
+        { monat: "2026-02", bezahlt: true, datum: "2026-02-05" },
+        { monat: "2026-03", bezahlt: true, datum: "2026-03-05" },
+      ],
+    },
+  ]);
 
   const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
