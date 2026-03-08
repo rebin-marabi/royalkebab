@@ -168,7 +168,7 @@ export default function Schulden() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-sm text-muted-foreground">Abgeschlossen</div>
-            <div className="text-2xl font-bold text-green-600">{totalAbgeschlossen}</div>
+            <div className="text-2xl font-bold text-primary">{totalAbgeschlossen}</div>
           </CardContent>
         </Card>
       </div>
