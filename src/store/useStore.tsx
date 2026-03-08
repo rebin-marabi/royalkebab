@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { StundenEintrag } from "@/lib/stundenUtils";
+import { format } from "date-fns";
 export type Vertragstyp = "minijob" | "teilzeit" | "vollzeit";
 
 export interface MitarbeiterData {
@@ -61,16 +62,26 @@ export interface RateZahlung {
   notiz: string;
 }
 
+export interface MonatStatus {
+  monat: string; // "YYYY-MM"
+  bezahlt: boolean;
+  datum?: string; // Wann bezahlt
+}
+
+export type SchuldenKategorie = "miete" | "rate" | "kredit" | "versicherung" | "sonstiges";
+
 export interface SchuldenData {
   id: number;
   bezeichnung: string;
   beschreibung: string;
+  kategorie: SchuldenKategorie;
   gesamtbetrag: number;
   ratenBetrag: number;
   startDatum: string;
   faelligkeitTag: number; // Tag im Monat (1-28)
   intervall: "monatlich" | "vierteljaehrlich" | "jaehrlich";
   zahlungen: RateZahlung[];
+  monatsStatus: MonatStatus[];
   status: "aktiv" | "abgeschlossen";
 }
 
@@ -230,6 +241,7 @@ interface StoreContextType {
   deleteSchulden: (id: number) => void;
   addZahlung: (schuldenId: number, zahlung: RateZahlung) => void;
   updateSchuldenStatus: (id: number, status: SchuldenData["status"]) => void;
+  toggleMonatStatus: (schuldenId: number, monat: string) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
@@ -306,6 +318,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSchulden((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
   }, []);
 
+  const toggleMonatStatus = useCallback((schuldenId: number, monat: string) => {
+    setSchulden((prev) => prev.map((s) => {
+      if (s.id !== schuldenId) return s;
+      const existing = s.monatsStatus.find(m => m.monat === monat);
+      if (existing) {
+        return { ...s, monatsStatus: s.monatsStatus.map(m => m.monat === monat ? { ...m, bezahlt: !m.bezahlt, datum: !m.bezahlt ? format(new Date(), "yyyy-MM-dd") : undefined } : m) };
+      }
+      return { ...s, monatsStatus: [...s.monatsStatus, { monat, bezahlt: true, datum: format(new Date(), "yyyy-MM-dd") }] };
+    }));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -314,7 +337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
       kontoauszuege, addKontoauszug, deleteKontoauszug,
-      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus,
+      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus, toggleMonatStatus,
     }}>
       {children}
     </StoreContext.Provider>
