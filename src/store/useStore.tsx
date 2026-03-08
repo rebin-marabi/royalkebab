@@ -225,6 +225,11 @@ interface StoreContextType {
   kontoauszuege: KontoauszugData[];
   addKontoauszug: (k: Omit<KontoauszugData, "id">) => void;
   deleteKontoauszug: (id: number) => void;
+  schulden: SchuldenData[];
+  addSchulden: (s: Omit<SchuldenData, "id">) => void;
+  deleteSchulden: (id: number) => void;
+  addZahlung: (schuldenId: number, zahlung: RateZahlung) => void;
+  updateSchuldenStatus: (id: number, status: SchuldenData["status"]) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
