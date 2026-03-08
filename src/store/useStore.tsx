@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
+export type Vertragstyp = "minijob" | "teilzeit" | "vollzeit";
+
 export interface MitarbeiterData {
   id: number;
-  // Persönliche Daten
   vorname: string;
   nachname: string;
   geburtsdatum: string;
@@ -11,25 +12,116 @@ export interface MitarbeiterData {
   ort: string;
   telefon: string;
   email: string;
-  // Steuer & Sozialversicherung
   steuerID: string;
   sozialversicherungsnr: string;
   krankenkasse: string;
   iban: string;
-  // Vertragsdaten
   eintrittsdatum: string;
   position: string;
   arbeitsort: string;
+  vertragstyp: Vertragstyp;
   monatlicheStunden: number;
   stundenlohn: number;
   probezeitMonate: number;
   zusatzurlaub: number;
   vertragsart: "unbefristet" | "befristet";
   befristetBis?: string;
-  // Status
+  wochenStunden?: number; // for Vollzeit/Teilzeit
+  monatsgehalt?: number;  // for Vollzeit
   vertragStatus: "aktiv" | "gekuendigt" | "ausgelaufen";
   kuendigungsdatum?: string;
   status: "aktiv" | "inaktiv";
+}
+
+export interface ArbeitgeberDaten {
+  name: string;
+  adresse: string;
+  vertreter: string;
+  ort: string;
+}
+
+export interface VertragsParagraph {
+  titel: string;
+  inhalt: string; // supports placeholders like {name}, {adresse}, etc.
+}
+
+export interface VertragsVorlage {
+  typ: Vertragstyp;
+  label: string;
+  ueberschrift: string;
+  paragraphen: VertragsParagraph[];
+}
+
+const defaultArbeitgeber: ArbeitgeberDaten = {
+  name: "Royal Kebab",
+  adresse: "Augsburger Str. 3, 01309 Dresden",
+  vertreter: "MOHAMMED AMIN Mohammed Fouad M. Amin",
+  ort: "Dresden",
+};
+
+function createVorlagen(): VertragsVorlage[] {
+  return [
+    {
+      typ: "minijob",
+      label: "Minijob",
+      ueberschrift: "Arbeitsvertrag fuer geringfuegig entlohnte Beschaeftigung (Minijob)",
+      paragraphen: [
+        { titel: "Beginn, Dauer", inhalt: "Das Arbeitsverhaeltnis beginnt am {eintrittsdatum}.\n{dauer_text}" },
+        { titel: "Probezeit", inhalt: "Die ersten {probezeitMonate} Monate gelten als Probezeit. Waehrend der Probezeit kann das Arbeitsverhaeltnis von beiden Seiten mit einer Frist von zwei Wochen gekuendigt werden." },
+        { titel: "Taetigkeit", inhalt: "Der Arbeitnehmer wird als {position} eingestellt.\n\nDer Arbeitgeber kann dem Arbeitnehmer andere zumutbare, gleichwertige Taetigkeiten uebertragen, soweit dies betrieblich erforderlich ist und keine Minderung der Verguetung zur Folge hat." },
+        { titel: "Arbeitsort / Einsatzorte", inhalt: "Regelmaessiger Arbeitsort ist: {arbeitsort}.\n\nDer Arbeitnehmer erklaert sich bereit, im Rahmen des Zumutbaren auch an anderen Einsatzorten taetig zu werden, soweit dies betrieblich erforderlich ist." },
+        { titel: "Arbeitszeit", inhalt: "Die regelmaessige monatliche Arbeitszeit betraegt derzeit {monatlicheStunden} Stunden.\n\nDie Lage der Arbeitszeit richtet sich nach der betrieblichen Einteilung/Absprache.\n\nPausen richten sich nach den gesetzlichen Bestimmungen und betrieblicher Organisation." },
+        { titel: "Verguetung / Minijob-Grenze", inhalt: "Der Arbeitnehmer erhaelt einen Stundenlohn in Hoehe von {stundenlohn} EUR brutto.\n\nDie Verguetung wird spaetestens zum Monatsende auf ein vom Arbeitnehmer benanntes Konto ueberwiesen.\n\nDie Parteien sind sich einig, dass es sich um eine geringfuegig entlohnte Beschaeftigung handelt. Die monatliche Verguetung darf die gesetzliche Geringfuegigkeitsgrenze nicht ueberschreiten." },
+        { titel: "Mehrarbeit / Ueberstunden", inhalt: "Mehrarbeit wird nur auf ausdrueckliche Anordnung oder Genehmigung des Arbeitgebers geleistet. Etwaige Mehrarbeit wird durch Freizeit ausgeglichen oder mit dem vereinbarten Stundenlohn verguetet, soweit dadurch die Minijob-Grenze nicht ueberschritten wird." },
+        { titel: "Urlaub", inhalt: "Der Arbeitnehmer hat Anspruch auf den gesetzlichen Mindesturlaub. Zusaetzlich gewaehrt der Arbeitgeber {zusatzurlaub} Arbeitstage vertraglichen Zusatzurlaub pro Kalenderjahr." },
+        { titel: "Arbeitsverhinderung / Krankheit", inhalt: "Im Krankheitsfall ist der Arbeitnehmer verpflichtet, den Arbeitgeber unverzueglich ueber die Arbeitsunfaehigkeit und deren voraussichtliche Dauer zu informieren.\n\nDauert die Arbeitsunfaehigkeit laenger als drei Kalendertage, ist spaetestens am darauffolgenden Arbeitstag eine aerztliche Bescheinigung vorzulegen." },
+        { titel: "Verschwiegenheit", inhalt: "Der Arbeitnehmer verpflichtet sich, ueber Betriebs- und Geschaeftsgeheimnisse sowie interne Vorgaenge waehrend des Arbeitsverhaeltnisses und nach dessen Beendigung Stillschweigen zu bewahren." },
+        { titel: "Nebentaetigkeit", inhalt: "Eine Nebentaetigkeit ist zulaessig, sofern dadurch arbeitsvertragliche Pflichten nicht beeintraechtigt werden und keine Wettbewerbsinteressen verletzt werden." },
+        { titel: "Arbeitsschutz / Hygiene", inhalt: "Der Arbeitnehmer ist verpflichtet, die geltenden Arbeitsschutz-, Hygiene- und Sicherheitsvorschriften einzuhalten." },
+        { titel: "Kuendigung", inhalt: "Nach Ablauf der Probezeit gilt die gesetzliche Kuendigungsfrist. Die Kuendigung bedarf der Schriftform." },
+        { titel: "Schlussbestimmungen", inhalt: "Aenderungen und Ergaenzungen dieses Vertrages beduerfen der Schriftform.\n\nSollten einzelne Bestimmungen dieses Vertrages unwirksam sein oder werden, bleibt die Wirksamkeit der uebrigen Bestimmungen unberuehrt." },
+      ],
+    },
+    {
+      typ: "teilzeit",
+      label: "Teilzeit",
+      ueberschrift: "Arbeitsvertrag fuer Teilzeitbeschaeftigung",
+      paragraphen: [
+        { titel: "Beginn, Dauer", inhalt: "Das Arbeitsverhaeltnis beginnt am {eintrittsdatum}.\n{dauer_text}" },
+        { titel: "Probezeit", inhalt: "Die ersten {probezeitMonate} Monate gelten als Probezeit. Waehrend der Probezeit kann das Arbeitsverhaeltnis von beiden Seiten mit einer Frist von zwei Wochen gekuendigt werden." },
+        { titel: "Taetigkeit", inhalt: "Der Arbeitnehmer wird als {position} eingestellt.\n\nDer Arbeitgeber kann dem Arbeitnehmer andere zumutbare, gleichwertige Taetigkeiten uebertragen, soweit dies betrieblich erforderlich ist." },
+        { titel: "Arbeitsort", inhalt: "Regelmaessiger Arbeitsort ist: {arbeitsort}." },
+        { titel: "Arbeitszeit", inhalt: "Die regelmaessige woechentliche Arbeitszeit betraegt {wochenStunden} Stunden.\n\nDie Verteilung der Arbeitszeit richtet sich nach der betrieblichen Einteilung." },
+        { titel: "Verguetung", inhalt: "Der Arbeitnehmer erhaelt einen Stundenlohn in Hoehe von {stundenlohn} EUR brutto.\n\nDie Verguetung wird spaetestens zum Monatsende auf ein vom Arbeitnehmer benanntes Konto ueberwiesen." },
+        { titel: "Ueberstunden", inhalt: "Ueberstunden werden nur auf Anordnung des Arbeitgebers geleistet und durch Freizeit ausgeglichen oder verguetet." },
+        { titel: "Urlaub", inhalt: "Der Arbeitnehmer hat Anspruch auf den gesetzlichen Mindesturlaub anteilig zur Arbeitszeit. Zusaetzlich gewaehrt der Arbeitgeber {zusatzurlaub} Arbeitstage Zusatzurlaub." },
+        { titel: "Krankheit", inhalt: "Im Krankheitsfall ist der Arbeitnehmer verpflichtet, den Arbeitgeber unverzueglich zu informieren. Ab dem dritten Kalendertag ist eine aerztliche Bescheinigung vorzulegen." },
+        { titel: "Verschwiegenheit", inhalt: "Der Arbeitnehmer verpflichtet sich zur Verschwiegenheit ueber Betriebs- und Geschaeftsgeheimnisse." },
+        { titel: "Kuendigung", inhalt: "Nach Ablauf der Probezeit gilt die gesetzliche Kuendigungsfrist. Die Kuendigung bedarf der Schriftform." },
+        { titel: "Schlussbestimmungen", inhalt: "Aenderungen und Ergaenzungen dieses Vertrages beduerfen der Schriftform." },
+      ],
+    },
+    {
+      typ: "vollzeit",
+      label: "Vollzeit",
+      ueberschrift: "Arbeitsvertrag fuer Vollzeitbeschaeftigung",
+      paragraphen: [
+        { titel: "Beginn, Dauer", inhalt: "Das Arbeitsverhaeltnis beginnt am {eintrittsdatum}.\n{dauer_text}" },
+        { titel: "Probezeit", inhalt: "Die ersten {probezeitMonate} Monate gelten als Probezeit. Waehrend der Probezeit kann das Arbeitsverhaeltnis von beiden Seiten mit einer Frist von zwei Wochen gekuendigt werden." },
+        { titel: "Taetigkeit", inhalt: "Der Arbeitnehmer wird als {position} eingestellt.\n\nDer Arbeitgeber kann dem Arbeitnehmer andere zumutbare, gleichwertige Taetigkeiten uebertragen, soweit dies betrieblich erforderlich ist." },
+        { titel: "Arbeitsort", inhalt: "Regelmaessiger Arbeitsort ist: {arbeitsort}." },
+        { titel: "Arbeitszeit", inhalt: "Die regelmaessige woechentliche Arbeitszeit betraegt {wochenStunden} Stunden (Vollzeit).\n\nDie Verteilung der Arbeitszeit richtet sich nach der betrieblichen Einteilung." },
+        { titel: "Verguetung", inhalt: "Der Arbeitnehmer erhaelt ein monatliches Bruttogehalt in Hoehe von {monatsgehalt} EUR.\n\nDie Verguetung wird spaetestens zum Monatsende auf ein vom Arbeitnehmer benanntes Konto ueberwiesen." },
+        { titel: "Ueberstunden", inhalt: "Ueberstunden werden nur auf Anordnung des Arbeitgebers geleistet und durch Freizeit ausgeglichen oder verguetet." },
+        { titel: "Urlaub", inhalt: "Der Arbeitnehmer hat Anspruch auf {zusatzurlaub_plus_gesetzlich} Arbeitstage Urlaub pro Kalenderjahr (gesetzlich + {zusatzurlaub} Tage Zusatzurlaub)." },
+        { titel: "Krankheit", inhalt: "Im Krankheitsfall ist der Arbeitnehmer verpflichtet, den Arbeitgeber unverzueglich zu informieren. Ab dem dritten Kalendertag ist eine aerztliche Bescheinigung vorzulegen." },
+        { titel: "Verschwiegenheit", inhalt: "Der Arbeitnehmer verpflichtet sich zur Verschwiegenheit ueber Betriebs- und Geschaeftsgeheimnisse." },
+        { titel: "Nebentaetigkeit", inhalt: "Jede Nebentaetigkeit bedarf der vorherigen schriftlichen Zustimmung des Arbeitgebers." },
+        { titel: "Kuendigung", inhalt: "Nach Ablauf der Probezeit gilt die gesetzliche Kuendigungsfrist. Die Kuendigung bedarf der Schriftform." },
+        { titel: "Schlussbestimmungen", inhalt: "Aenderungen und Ergaenzungen dieses Vertrages beduerfen der Schriftform." },
+      ],
+    },
+  ];
 }
 
 const initialData: MitarbeiterData[] = [
@@ -41,7 +133,9 @@ const initialData: MitarbeiterData[] = [
     krankenkasse: "AOK", iban: "DE89 3704 0044 0532 0130 00",
     eintrittsdatum: "2023-01-15", position: "Mitarbeiter im Imbissbetrieb",
     arbeitsort: "Augsburger Str. 3, 01309 Dresden",
-    monatlicheStunden: 40, stundenlohn: 13, probezeitMonate: 6, zusatzurlaub: 0,
+    vertragstyp: "vollzeit", monatlicheStunden: 160, stundenlohn: 13,
+    wochenStunden: 40, monatsgehalt: 2080,
+    probezeitMonate: 6, zusatzurlaub: 0,
     vertragsart: "unbefristet", vertragStatus: "aktiv", status: "aktiv",
   },
   {
@@ -52,7 +146,8 @@ const initialData: MitarbeiterData[] = [
     krankenkasse: "TK", iban: "DE27 1005 0000 0190 0881 50",
     eintrittsdatum: "2024-06-01", position: "Mitarbeiter im Imbissbetrieb",
     arbeitsort: "Augsburger Str. 3, 01309 Dresden",
-    monatlicheStunden: 9, stundenlohn: 13, probezeitMonate: 6, zusatzurlaub: 0,
+    vertragstyp: "minijob", monatlicheStunden: 9, stundenlohn: 13,
+    probezeitMonate: 6, zusatzurlaub: 0,
     vertragsart: "unbefristet", vertragStatus: "aktiv", status: "aktiv",
   },
   {
@@ -63,7 +158,9 @@ const initialData: MitarbeiterData[] = [
     krankenkasse: "Barmer", iban: "DE60 1001 0010 0987 6543 21",
     eintrittsdatum: "2025-02-01", position: "Mitarbeiter im Imbissbetrieb",
     arbeitsort: "Augsburger Str. 3, 01309 Dresden",
-    monatlicheStunden: 25, stundenlohn: 13, probezeitMonate: 6, zusatzurlaub: 0,
+    vertragstyp: "teilzeit", monatlicheStunden: 100, stundenlohn: 13,
+    wochenStunden: 25,
+    probezeitMonate: 6, zusatzurlaub: 0,
     vertragsart: "unbefristet", vertragStatus: "aktiv", status: "aktiv",
   },
 ];
@@ -72,12 +169,18 @@ interface StoreContextType {
   mitarbeiter: MitarbeiterData[];
   addMitarbeiter: (ma: Omit<MitarbeiterData, "id">) => void;
   updateMitarbeiter: (id: number, data: Partial<MitarbeiterData>) => void;
+  arbeitgeber: ArbeitgeberDaten;
+  setArbeitgeber: (data: ArbeitgeberDaten) => void;
+  vorlagen: VertragsVorlage[];
+  updateVorlage: (typ: Vertragstyp, vorlage: VertragsVorlage) => void;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [mitarbeiter, setMitarbeiter] = useState<MitarbeiterData[]>(initialData);
+  const [arbeitgeber, setArbeitgeber] = useState<ArbeitgeberDaten>(defaultArbeitgeber);
+  const [vorlagen, setVorlagen] = useState<VertragsVorlage[]>(createVorlagen());
 
   const addMitarbeiter = (ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
@@ -87,8 +190,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMitarbeiter((prev) => prev.map((m) => (m.id === id ? { ...m, ...data } : m)));
   };
 
+  const updateVorlage = (typ: Vertragstyp, vorlage: VertragsVorlage) => {
+    setVorlagen((prev) => prev.map((v) => (v.typ === typ ? vorlage : v)));
+  };
+
   return (
-    <StoreContext.Provider value={{ mitarbeiter, addMitarbeiter, updateMitarbeiter }}>
+    <StoreContext.Provider value={{ mitarbeiter, addMitarbeiter, updateMitarbeiter, arbeitgeber, setArbeitgeber, vorlagen, updateVorlage }}>
       {children}
     </StoreContext.Provider>
   );
@@ -99,3 +206,9 @@ export function useStore() {
   if (!ctx) throw new Error("useStore must be inside StoreProvider");
   return ctx;
 }
+
+export const VERTRAGSTYP_LABELS: Record<Vertragstyp, string> = {
+  minijob: "Minijob",
+  teilzeit: "Teilzeit",
+  vollzeit: "Vollzeit",
+};

@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { MitarbeiterData } from "@/store/useStore";
+import { MitarbeiterData, ArbeitgeberDaten, VertragsVorlage } from "@/store/useStore";
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return "___________";
@@ -7,20 +7,57 @@ function formatDate(dateStr: string): string {
   return `${d}.${m}.${y}`;
 }
 
-export function generateVertragPDF(ma: MitarbeiterData) {
+function replacePlaceholders(text: string, ma: MitarbeiterData): string {
+  const dauerText = ma.vertragsart === "unbefristet"
+    ? "Das Arbeitsverhaeltnis wird auf unbestimmte Zeit geschlossen."
+    : `Das Arbeitsverhaeltnis ist befristet bis zum ${formatDate(ma.befristetBis || "")}.`;
+
+  const replacements: Record<string, string> = {
+    "{eintrittsdatum}": formatDate(ma.eintrittsdatum),
+    "{dauer_text}": dauerText,
+    "{probezeitMonate}": String(ma.probezeitMonate),
+    "{position}": ma.position,
+    "{arbeitsort}": ma.arbeitsort,
+    "{monatlicheStunden}": ma.monatlicheStunden.toFixed(2),
+    "{stundenlohn}": ma.stundenlohn.toFixed(2),
+    "{wochenStunden}": String(ma.wochenStunden || 40),
+    "{monatsgehalt}": (ma.monatsgehalt || 0).toFixed(2),
+    "{zusatzurlaub}": String(ma.zusatzurlaub),
+    "{zusatzurlaub_plus_gesetzlich}": String(20 + ma.zusatzurlaub),
+    "{vorname}": ma.vorname,
+    "{nachname}": ma.nachname,
+    "{name}": `${ma.vorname} ${ma.nachname}`,
+    "{anschrift}": `${ma.anschrift}, ${ma.plz} ${ma.ort}`,
+    "{geburtsdatum}": formatDate(ma.geburtsdatum),
+  };
+
+  let result = text;
+  for (const [key, value] of Object.entries(replacements)) {
+    result = result.split(key).join(value);
+  }
+  return result;
+}
+
+export function generateVertragPDF(
+  ma: MitarbeiterData,
+  vorlage: VertragsVorlage,
+  arbeitgeber: ArbeitgeberDaten
+) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const w = doc.internal.pageSize.getWidth();
   const margin = 20;
   const textWidth = w - margin * 2;
   let y = 20;
 
-  const arbeitgeber = {
-    name: "Royal Kebab",
-    adresse: "Augsburger Str. 3, 01309 Dresden",
-    vertreter: "MOHAMMED AMIN Mohammed Fouad M. Amin",
-  };
+  function checkPage(needed: number) {
+    if (y + needed > 275) {
+      doc.addPage();
+      y = 20;
+    }
+  }
 
   function heading(text: string) {
+    checkPage(15);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     y += 6;
@@ -32,10 +69,7 @@ export function generateVertragPDF(ma: MitarbeiterData) {
 
   function para(text: string) {
     const lines = doc.splitTextToSize(text, textWidth);
-    if (y + lines.length * 4.5 > 275) {
-      doc.addPage();
-      y = 20;
-    }
+    checkPage(lines.length * 4.5);
     doc.text(lines, margin, y);
     y += lines.length * 4.5 + 2;
   }
@@ -45,14 +79,17 @@ export function generateVertragPDF(ma: MitarbeiterData) {
   // Title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("Arbeitsvertrag für geringfügig entlohnte", w / 2, y, { align: "center" });
+  const titleLines = doc.splitTextToSize(vorlage.ueberschrift, textWidth);
+  titleLines.forEach((line: string) => {
+    doc.text(line, w / 2, y, { align: "center" });
+    y += 6;
+  });
   y += 6;
-  doc.text("Beschäftigung (Minijob)", w / 2, y, { align: "center" });
-  y += 10;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
 
+  // Parties
   para("Zwischen");
   gap(1);
   doc.setFont("helvetica", "bold");
@@ -73,84 +110,21 @@ export function generateVertragPDF(ma: MitarbeiterData) {
   gap(3);
   para("Es wird folgender Arbeitsvertrag geschlossen:");
 
-  // § 1
-  heading("§ 1 Beginn, Dauer");
-  para(`Das Arbeitsverhältnis beginnt am ${formatDate(ma.eintrittsdatum)}.`);
-  if (ma.vertragsart === "unbefristet") {
-    para("Das Arbeitsverhältnis wird auf unbestimmte Zeit geschlossen.");
-  } else {
-    para(`Das Arbeitsverhältnis ist befristet bis zum ${formatDate(ma.befristetBis || "")}.`);
-  }
+  // Paragraphs from template
+  vorlage.paragraphen.forEach((p, i) => {
+    heading(`\u00A7 ${i + 1} ${p.titel}`);
+    const processed = replacePlaceholders(p.inhalt, ma);
+    // Split by newlines for separate paragraphs
+    processed.split("\n").filter(Boolean).forEach((block) => {
+      para(block);
+    });
+  });
 
-  // § 2
-  heading("§ 2 Probezeit");
-  para(`Die ersten ${ma.probezeitMonate} Monate gelten als Probezeit. Während der Probezeit kann das Arbeitsverhältnis von beiden Seiten mit einer Frist von zwei Wochen gekündigt werden.`);
-
-  // § 3
-  heading("§ 3 Tätigkeit");
-  para(`Der Arbeitnehmer wird als ${ma.position} eingestellt.`);
-  para("Der Arbeitgeber kann dem Arbeitnehmer andere zumutbare, gleichwertige Tätigkeiten übertragen, soweit dies betrieblich erforderlich ist und keine Minderung der Vergütung zur Folge hat.");
-
-  // § 4
-  heading("§ 4 Arbeitsort / Einsatzorte");
-  para(`Regelmäßiger Arbeitsort ist: ${ma.arbeitsort}.`);
-  para("Der Arbeitnehmer erklärt sich bereit, im Rahmen des Zumutbaren auch an anderen Einsatzorten tätig zu werden (z. B. Filialen/Objekte/Kundenstandorte), soweit dies betrieblich erforderlich ist.");
-
-  // § 5
-  heading("§ 5 Arbeitszeit");
-  para(`Die regelmäßige monatliche Arbeitszeit beträgt derzeit ${ma.monatlicheStunden.toFixed(2)} Stunden.`);
-  para("Die Lage der Arbeitszeit richtet sich nach der betrieblichen Einteilung/Absprache. Änderungen sind aus betrieblichen Gründen möglich, wobei berechtigte Interessen des Arbeitnehmers berücksichtigt werden.");
-  para("Pausen richten sich nach den gesetzlichen Bestimmungen und betrieblicher Organisation.");
-
-  // § 6
-  heading("§ 6 Vergütung / Minijob-Grenze");
-  para(`Der Arbeitnehmer erhält einen Stundenlohn in Höhe von ${ma.stundenlohn.toFixed(2)} EUR brutto.`);
-  para("Die Vergütung wird spätestens zum Monatsende auf ein vom Arbeitnehmer benanntes Konto überwiesen.");
-  para("Die Parteien sind sich einig, dass es sich um eine geringfügig entlohnte Beschäftigung handelt. Die monatliche Vergütung darf die gesetzliche Geringfügigkeitsgrenze nicht überschreiten. Der Arbeitnehmer informiert den Arbeitgeber unverzüglich über weitere Beschäftigungen, die die Einhaltung der Geringfügigkeitsgrenze beeinflussen können.");
-
-  // § 7
-  heading("§ 7 Mehrarbeit / Überstunden");
-  para("Mehrarbeit wird nur auf ausdrückliche Anordnung oder Genehmigung des Arbeitgebers geleistet. Etwaige Mehrarbeit wird durch Freizeit ausgeglichen oder mit dem vereinbarten Stundenlohn vergütet, soweit gesetzlich zulässig und soweit dadurch die Minijob-Grenze nicht überschritten wird.");
-
-  // § 8
-  heading("§ 8 Urlaub");
-  para(`Der Arbeitnehmer hat Anspruch auf den gesetzlichen Mindesturlaub nach den gesetzlichen Bestimmungen. Zusätzlich gewährt der Arbeitgeber ${ma.zusatzurlaub} Arbeitstage vertraglichen Zusatzurlaub pro Kalenderjahr.`);
-  para("Urlaub ist rechtzeitig zu beantragen. Bei Beendigung des Arbeitsverhältnisses sind offene Urlaubsansprüche – soweit möglich – während der Kündigungsfrist zu nehmen.");
-
-  // § 9
-  heading("§ 9 Arbeitsverhinderung / Krankheit");
-  para("Im Krankheitsfall ist der Arbeitnehmer verpflichtet, den Arbeitgeber unverzüglich über die Arbeitsunfähigkeit und deren voraussichtliche Dauer zu informieren.");
-  para("Dauert die Arbeitsunfähigkeit länger als drei Kalendertage, ist spätestens am darauffolgenden Arbeitstag eine ärztliche Bescheinigung vorzulegen, sofern der Arbeitgeber nicht eine frühere Vorlage verlangt. Im Übrigen gelten die gesetzlichen Vorschriften zur Entgeltfortzahlung.");
-
-  // § 10
-  heading("§ 10 Verschwiegenheit");
-  para("Der Arbeitnehmer verpflichtet sich, über Betriebs- und Geschäftsgeheimnisse sowie interne Vorgänge während des Arbeitsverhältnisses und nach dessen Beendigung Stillschweigen zu bewahren.");
-
-  // § 11
-  heading("§ 11 Nebentätigkeit");
-  para("Eine Nebentätigkeit ist zulässig, sofern dadurch arbeitsvertragliche Pflichten nicht beeinträchtigt werden und keine Wettbewerbsinteressen verletzt werden. Der Arbeitnehmer informiert den Arbeitgeber über weitere Beschäftigungen, soweit dies für die sozialversicherungsrechtliche Beurteilung (Minijob-Grenze) erforderlich ist.");
-
-  // § 12
-  heading("§ 12 Arbeitsschutz / Hygiene");
-  para("Der Arbeitnehmer ist verpflichtet, die geltenden Arbeitsschutz-, Hygiene- und Sicherheitsvorschriften einzuhalten. Arbeitsanweisungen und Unterweisungen sind zu beachten.");
-  para("Erforderliche Arbeitsmittel werden – soweit betrieblich vorgesehen – vom Arbeitgeber gestellt.");
-
-  // § 13
-  heading("§ 13 Kündigung");
-  para("Nach Ablauf der Probezeit gilt die gesetzliche Kündigungsfrist. Die Kündigung bedarf der Schriftform.");
-  para("Der Arbeitgeber kann den Arbeitnehmer unter Fortzahlung der Vergütung bis zum Ende des Arbeitsverhältnisses freistellen; dabei werden vorhandene Urlaubsansprüche angerechnet.");
-
-  // § 14
-  heading("§ 14 Schlussbestimmungen");
-  para("Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform; dies gilt auch für die Aufhebung dieser Schriftformklausel.");
-  para("Sollten einzelne Bestimmungen dieses Vertrages unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.");
-  para("Der Arbeitnehmer verpflichtet sich, Änderungen seiner Anschrift und anderer für das Arbeitsverhältnis relevanter persönlicher Daten unverzüglich mitzuteilen.");
-
+  // Signature
   gap(10);
-  para(`Ort, Datum: Dresden, ${formatDate(ma.eintrittsdatum)}`);
+  para(`Ort, Datum: ${arbeitgeber.ort}, ${formatDate(ma.eintrittsdatum)}`);
   gap(15);
-
-  // Signature lines
+  checkPage(10);
   doc.line(margin, y, margin + 65, y);
   doc.line(w - margin - 65, y, w - margin, y);
   y += 5;
@@ -158,5 +132,5 @@ export function generateVertragPDF(ma: MitarbeiterData) {
   doc.text("Unterschrift Arbeitgeber", margin, y);
   doc.text("Unterschrift Arbeitnehmer", w - margin - 65, y);
 
-  doc.save(`Arbeitsvertrag_${ma.nachname}_${ma.vorname}.pdf`);
+  doc.save(`Arbeitsvertrag_${vorlage.label}_${ma.nachname}_${ma.vorname}.pdf`);
 }
