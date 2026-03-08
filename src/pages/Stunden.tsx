@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useStore, VERTRAGSTYP_LABELS } from "@/store/useStore";
+import { useStore, VERTRAGSTYP_LABELS, MitarbeiterData } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, AlertTriangle, Wand2, Calendar } from "lucide-react";
+import { Plus, Trash2, Wand2, Calendar, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
-  StundenEintrag, calcHours, generateMonthEntries, validateEntry, getMonthSollStunden,
+  StundenEintrag, calcHours, generateMonthEntries, getMonthSollStunden,
 } from "@/lib/stundenUtils";
+import jsPDF from "jspdf";
 
 const now = new Date();
 const currentYear = now.getFullYear();
