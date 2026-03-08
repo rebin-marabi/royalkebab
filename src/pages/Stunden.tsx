@@ -9,7 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Calendar, AlertTriangle, Wand2 } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, Wand2, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   StundenEintrag, calcHours, generateMonthEntries, validateEntry, getMonthSollStunden,
@@ -38,11 +38,11 @@ export default function Stunden() {
   const [viewMonth, setViewMonth] = useState(currentMonth);
   const [viewYear, setViewYear] = useState(currentYear);
 
-  // Modals
-  const [showDailyForm, setShowDailyForm] = useState(false);
-  const [showMonthlyForm, setShowMonthlyForm] = useState(false);
-  const [autoFillDialog, setAutoFillDialog] = useState(false);
-  const [autoFillMA, setAutoFillMA] = useState("");
+  // Dialog states
+  const [dailyOpen, setDailyOpen] = useState(false);
+  const [monthlySelectOpen, setMonthlySelectOpen] = useState(false);
+  const [monthlyEditOpen, setMonthlyEditOpen] = useState(false);
+  const [autoFillOpen, setAutoFillOpen] = useState(false);
 
   // Daily form
   const [dailyForm, setDailyForm] = useState({
@@ -51,8 +51,9 @@ export default function Stunden() {
   });
   const [dailyWarnings, setDailyWarnings] = useState<string[]>([]);
 
-  // Monthly form
+  // Monthly
   const [monthlyMA, setMonthlyMA] = useState("");
+  const [autoFillMA, setAutoFillMA] = useState("");
   const [monthlyRows, setMonthlyRows] = useState<Array<{
     datum: string; startzeit: string; endzeit: string; pause: string; active: boolean;
   }>>([]);
@@ -61,9 +62,7 @@ export default function Stunden() {
 
   const filtered = useMemo(() => {
     let result = stunden.filter((s) => s.datum.startsWith(monthPrefix));
-    if (selectedMA !== "alle") {
-      result = result.filter((s) => s.mitarbeiterId === Number(selectedMA));
-    }
+    if (selectedMA !== "alle") result = result.filter((s) => s.mitarbeiterId === Number(selectedMA));
     return result.sort((a, b) => a.datum.localeCompare(b.datum));
   }, [stunden, monthPrefix, selectedMA]);
 
@@ -72,7 +71,11 @@ export default function Stunden() {
     return m ? `${m.vorname} ${m.nachname}` : "Unbekannt";
   };
 
-  // Summary per MA for selected month
+  const getDayName = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][d.getDay()];
+  };
+
   const summary = useMemo(() => {
     return mitarbeiter.filter((m) => m.status === "aktiv").map((m) => {
       const entries = stunden.filter((s) => s.mitarbeiterId === m.id && s.datum.startsWith(monthPrefix));
@@ -82,44 +85,23 @@ export default function Stunden() {
     });
   }, [mitarbeiter, stunden, monthPrefix]);
 
-  // === Daily Entry ===
-  const handleDailyValidate = () => {
-    const w = validateEntry(dailyForm.startzeit, dailyForm.endzeit, Number(dailyForm.pause));
-    setDailyWarnings(w);
-  };
-
+  // === Daily ===
   const handleDailyAdd = () => {
     if (!dailyForm.mitarbeiterId) return;
     const w = validateEntry(dailyForm.startzeit, dailyForm.endzeit, Number(dailyForm.pause));
-    if (w.length > 0) {
-      setDailyWarnings(w);
-      return;
-    }
-    setStunden((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        mitarbeiterId: Number(dailyForm.mitarbeiterId),
-        datum: dailyForm.datum,
-        startzeit: dailyForm.startzeit,
-        endzeit: dailyForm.endzeit,
-        pause: Number(dailyForm.pause),
-        notiz: dailyForm.notiz,
-      },
-    ]);
-    setShowDailyForm(false);
+    if (w.length > 0) { setDailyWarnings(w); return; }
+    setStunden((prev) => [...prev, {
+      id: Date.now(), mitarbeiterId: Number(dailyForm.mitarbeiterId),
+      datum: dailyForm.datum, startzeit: dailyForm.startzeit,
+      endzeit: dailyForm.endzeit, pause: Number(dailyForm.pause), notiz: dailyForm.notiz,
+    }]);
+    setDailyOpen(false);
     setDailyWarnings([]);
     toast({ title: "Eintrag hinzugefuegt" });
   };
 
-  // === Delete ===
-  const handleDelete = (id: number) => {
-    setStunden((prev) => prev.filter((s) => s.id !== id));
-    toast({ title: "Eintrag geloescht" });
-  };
-
   // === Monthly Manual ===
-  const initMonthlyForm = () => {
+  const openMonthlyEdit = () => {
     if (!monthlyMA) return;
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     const existingDates = new Set(
@@ -131,42 +113,35 @@ export default function Stunden() {
       const dow = date.getDay();
       const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const isSunday = dow === 0;
-      const alreadyExists = existingDates.has(dateStr);
+      const exists = existingDates.has(dateStr);
       rows.push({
         datum: dateStr,
-        startzeit: isSunday || alreadyExists ? "" : "10:00",
-        endzeit: isSunday || alreadyExists ? "" : "14:00",
-        pause: isSunday || alreadyExists ? "0" : "0",
-        active: !isSunday && !alreadyExists,
+        startzeit: isSunday || exists ? "" : "10:00",
+        endzeit: isSunday || exists ? "" : "14:00",
+        pause: isSunday || exists ? "0" : "0",
+        active: !isSunday && !exists,
       });
     }
     setMonthlyRows(rows);
-    setShowMonthlyForm(true);
+    setMonthlySelectOpen(false);
+    setMonthlyEditOpen(true);
   };
 
   const handleMonthlySave = () => {
     const newEntries: StundenEintrag[] = [];
-    let totalWarnings = 0;
     for (const row of monthlyRows) {
       if (!row.active || !row.startzeit || !row.endzeit) continue;
-      const w = validateEntry(row.startzeit, row.endzeit, Number(row.pause));
-      if (w.length > 0) totalWarnings++;
       newEntries.push({
         id: Date.now() + newEntries.length + Math.floor(Math.random() * 99999),
         mitarbeiterId: Number(monthlyMA),
-        datum: row.datum,
-        startzeit: row.startzeit,
-        endzeit: row.endzeit,
-        pause: Number(row.pause),
-        notiz: "",
+        datum: row.datum, startzeit: row.startzeit, endzeit: row.endzeit,
+        pause: Number(row.pause), notiz: "",
       });
     }
-    if (totalWarnings > 0) {
-      toast({ title: "Achtung", description: `${totalWarnings} Eintraege haben gesetzliche Warnungen. Bitte pruefen.`, variant: "destructive" });
-    }
     setStunden((prev) => [...prev, ...newEntries]);
-    setShowMonthlyForm(false);
-    toast({ title: `${newEntries.length} Eintraege hinzugefuegt` });
+    setMonthlyEditOpen(false);
+    const totalH = newEntries.reduce((s, e) => s + calcHours(e.startzeit, e.endzeit, e.pause), 0);
+    toast({ title: `${newEntries.length} Eintraege gespeichert (${totalH.toFixed(1)}h)` });
   };
 
   // === Auto Fill ===
@@ -176,83 +151,53 @@ export default function Stunden() {
     if (!ma) return;
     const entries = generateMonthEntries(ma, viewYear, viewMonth, stunden);
     if (entries.length === 0) {
-      toast({ title: "Keine Eintraege generiert", description: "Soll-Stunden bereits erreicht oder keine verfuegbaren Tage.", variant: "destructive" });
+      toast({ title: "Keine Eintraege", description: "Soll-Stunden bereits erreicht.", variant: "destructive" });
       return;
     }
     setStunden((prev) => [...prev, ...entries]);
-    setAutoFillDialog(false);
+    setAutoFillOpen(false);
     const totalH = entries.reduce((s, e) => s + calcHours(e.startzeit, e.endzeit, e.pause), 0);
-    toast({ title: `${entries.length} Tage generiert`, description: `${totalH.toFixed(1)}h fuer ${ma.vorname} ${ma.nachname}` });
+    toast({ title: `${entries.length} Tage generiert (${totalH.toFixed(1)}h)` });
   };
 
-  const deleteMonth = (maId: number) => {
+  const handleDelete = (id: number) => {
+    setStunden((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const deleteMonthForMA = (maId: number) => {
     setStunden((prev) => prev.filter((s) => !(s.mitarbeiterId === maId && s.datum.startsWith(monthPrefix))));
     toast({ title: "Monat geloescht" });
   };
 
-  const getDayName = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][d.getDay()];
-  };
-
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold font-display text-foreground">Mitarbeiter-Stunden</h1>
           <p className="text-muted-foreground mt-1">Arbeitszeiten erfassen und verwalten</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowDailyForm(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Taeglich
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setDailyOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Taeglich
           </Button>
-          <Button variant="outline" onClick={() => { setShowMonthlyForm(false); setMonthlyMA(""); initMonthlyForm(); }}>
-            <Calendar className="h-4 w-4 mr-2" /> Monatlich
+          <Button variant="outline" size="sm" onClick={() => setMonthlySelectOpen(true)}>
+            <Calendar className="h-4 w-4 mr-1" /> Monatlich
           </Button>
-          <Dialog open={autoFillDialog} onOpenChange={setAutoFillDialog}>
-            <DialogTrigger asChild>
-              <Button><Wand2 className="h-4 w-4 mr-2" /> Monat ausfuellen</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="font-display">Monat automatisch ausfuellen</DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground mb-4">
-                Generiert Eintraege fuer {MONTHS[viewMonth]} {viewYear} basierend auf Vertragsstunden. 
-                Respektiert: Max. 10h/Tag, Pflichtpausen, keine Sonntage, bereits vorhandene Eintraege.
-              </p>
-              <div>
-                <Label>Mitarbeiter</Label>
-                <Select value={autoFillMA} onValueChange={setAutoFillMA}>
-                  <SelectTrigger><SelectValue placeholder="Waehlen..." /></SelectTrigger>
-                  <SelectContent>
-                    {mitarbeiter.filter((m) => m.status === "aktiv").map((m) => (
-                      <SelectItem key={m.id} value={String(m.id)}>
-                        {m.vorname} {m.nachname} ({VERTRAGSTYP_LABELS[m.vertragstyp]}, Soll: {m.monatlicheStunden}h)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setAutoFillDialog(false)}>Abbrechen</Button>
-                <Button onClick={handleAutoFill}>Generieren</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" onClick={() => setAutoFillOpen(true)}>
+            <Wand2 className="h-4 w-4 mr-1" /> Auto-Ausfuellen
+          </Button>
         </div>
       </div>
 
       {/* Month Navigation */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="sm" onClick={() => {
-          if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
-          else setViewMonth(viewMonth - 1);
+          if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else setViewMonth(viewMonth - 1);
         }}>&larr;</Button>
-        <span className="font-display font-bold text-lg text-foreground">{MONTHS[viewMonth]} {viewYear}</span>
+        <span className="font-display font-bold text-lg text-foreground min-w-[160px] text-center">{MONTHS[viewMonth]} {viewYear}</span>
         <Button variant="outline" size="sm" onClick={() => {
-          if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
-          else setViewMonth(viewMonth + 1);
+          if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else setViewMonth(viewMonth + 1);
         }}>&rarr;</Button>
         <div className="ml-auto">
           <Select value={selectedMA} onValueChange={setSelectedMA}>
@@ -278,13 +223,15 @@ export default function Stunden() {
                   {VERTRAGSTYP_LABELS[m.vertragstyp]}
                 </span>
               </div>
-              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteMonth(m.id)} title="Monat loeschen">
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              {m.entries > 0 && (
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteMonthForMA(m.id)} title="Alle Eintraege dieses Monats loeschen">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
             <div className="mt-3 flex items-end gap-2">
               <p className="text-2xl font-bold font-display text-primary">{m.totalHours.toFixed(1)}h</p>
-              <p className="text-sm text-muted-foreground mb-0.5">/ {m.soll}h Soll</p>
+              <p className="text-sm text-muted-foreground mb-0.5">/ {m.soll}h</p>
             </div>
             <div className="mt-1 w-full bg-muted rounded-full h-2">
               <div
@@ -293,7 +240,7 @@ export default function Stunden() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {m.entries} Eintraege · {m.diff >= 0 ? `+${m.diff.toFixed(1)}h` : `${m.diff.toFixed(1)}h`}
+              {m.entries} Eintraege &middot; {m.diff >= 0 ? `+${m.diff.toFixed(1)}` : m.diff.toFixed(1)}h
             </p>
           </div>
         ))}
@@ -311,13 +258,12 @@ export default function Stunden() {
               <th className="text-left p-3 text-sm font-semibold text-muted-foreground">Bis</th>
               <th className="text-left p-3 text-sm font-semibold text-muted-foreground">Pause</th>
               <th className="text-left p-3 text-sm font-semibold text-muted-foreground">Stunden</th>
-              <th className="text-left p-3 text-sm font-semibold text-muted-foreground">Notiz</th>
-              <th className="text-left p-3 text-sm font-semibold text-muted-foreground"></th>
+              <th className="p-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Keine Eintraege fuer diesen Monat.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Keine Eintraege fuer diesen Monat.</td></tr>
             )}
             {filtered.map((s) => {
               const hours = calcHours(s.startzeit, s.endzeit, s.pause);
@@ -332,11 +278,12 @@ export default function Stunden() {
                   <td className="p-3 text-muted-foreground">{s.pause}m</td>
                   <td className="p-3 font-medium text-foreground">
                     {hours.toFixed(1)}h
-                    {warnings.length > 0 && <AlertTriangle className="inline h-3 w-3 text-destructive ml-1" />}
+                    {warnings.length > 0 && (
+                      <span title={warnings.join("; ")}><AlertTriangle className="inline h-3 w-3 text-destructive ml-1" /></span>
+                    )}
                   </td>
-                  <td className="p-3 text-muted-foreground text-xs">{s.notiz || ""}</td>
                   <td className="p-3">
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(s.id)}>
+                    <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => handleDelete(s.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </td>
@@ -347,12 +294,12 @@ export default function Stunden() {
         </table>
       </div>
 
-      {/* Daily Entry Dialog */}
-      <Dialog open={showDailyForm} onOpenChange={setShowDailyForm}>
+      {/* === DIALOGS === */}
+
+      {/* Daily Entry */}
+      <Dialog open={dailyOpen} onOpenChange={setDailyOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Taeglich eintragen</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-display">Taeglich eintragen</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
               <Label>Mitarbeiter</Label>
@@ -367,112 +314,130 @@ export default function Stunden() {
             </div>
             <div><Label>Datum</Label><Input type="date" value={dailyForm.datum} onChange={(e) => setDailyForm({ ...dailyForm, datum: e.target.value })} /></div>
             <div className="grid grid-cols-3 gap-3">
-              <div><Label>Von</Label><Input type="time" value={dailyForm.startzeit} onChange={(e) => { setDailyForm({ ...dailyForm, startzeit: e.target.value }); }} /></div>
-              <div><Label>Bis</Label><Input type="time" value={dailyForm.endzeit} onChange={(e) => { setDailyForm({ ...dailyForm, endzeit: e.target.value }); }} /></div>
-              <div><Label>Pause (Min)</Label><Input type="number" value={dailyForm.pause} onChange={(e) => { setDailyForm({ ...dailyForm, pause: e.target.value }); }} /></div>
+              <div><Label>Von</Label><Input type="time" value={dailyForm.startzeit} onChange={(e) => setDailyForm({ ...dailyForm, startzeit: e.target.value })} /></div>
+              <div><Label>Bis</Label><Input type="time" value={dailyForm.endzeit} onChange={(e) => setDailyForm({ ...dailyForm, endzeit: e.target.value })} /></div>
+              <div><Label>Pause</Label><Input type="number" value={dailyForm.pause} onChange={(e) => setDailyForm({ ...dailyForm, pause: e.target.value })} /></div>
             </div>
-            <div><Label>Notiz</Label><Input value={dailyForm.notiz} onChange={(e) => setDailyForm({ ...dailyForm, notiz: e.target.value })} placeholder="Optional" /></div>
-
+            <div><Label>Notiz</Label><Input value={dailyForm.notiz} onChange={(e) => setDailyForm({ ...dailyForm, notiz: e.target.value })} /></div>
             {dailyWarnings.length > 0 && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 space-y-1">
                 {dailyWarnings.map((w, i) => (
-                  <p key={i} className="text-sm text-destructive flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" /> {w}
-                  </p>
+                  <p key={i} className="text-sm text-destructive flex items-center gap-2"><AlertTriangle className="h-4 w-4 shrink-0" /> {w}</p>
                 ))}
               </div>
             )}
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={handleDailyValidate}>Pruefen</Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowDailyForm(false)}>Abbrechen</Button>
-                <Button onClick={handleDailyAdd}>Eintragen</Button>
-              </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDailyOpen(false)}>Abbrechen</Button>
+              <Button onClick={handleDailyAdd}>Eintragen</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Monthly Manual Dialog */}
-      <Dialog open={showMonthlyForm && monthlyRows.length > 0} onOpenChange={setShowMonthlyForm}>
+      {/* Monthly MA Select */}
+      <Dialog open={monthlySelectOpen} onOpenChange={setMonthlySelectOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-display">Monat manuell eintragen</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Waehle einen Mitarbeiter fuer {MONTHS[viewMonth]} {viewYear}:</p>
+          <div className="mt-2">
+            <Select value={monthlyMA} onValueChange={setMonthlyMA}>
+              <SelectTrigger><SelectValue placeholder="Mitarbeiter waehlen..." /></SelectTrigger>
+              <SelectContent>
+                {mitarbeiter.filter((m) => m.status === "aktiv").map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>{m.vorname} {m.nachname} ({VERTRAGSTYP_LABELS[m.vertragstyp]})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setMonthlySelectOpen(false)}>Abbrechen</Button>
+            <Button onClick={openMonthlyEdit} disabled={!monthlyMA}>Weiter</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Monthly Edit */}
+      <Dialog open={monthlyEditOpen} onOpenChange={setMonthlyEditOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Monat manuell eintragen - {MONTHS[viewMonth]} {viewYear}</DialogTitle>
+            <DialogTitle className="font-display">{MONTHS[viewMonth]} {viewYear} - {monthlyMA && getName(Number(monthlyMA))}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 mt-2">
-            {monthlyRows.map((row, i) => (
-              <div key={row.datum} className={`flex items-center gap-2 p-2 rounded ${!row.active ? "opacity-40" : ""} ${getDayName(row.datum) === "So" ? "bg-muted/50" : ""}`}>
-                <span className="w-20 text-sm font-medium text-foreground">
-                  {row.datum.split("-")[2]}. {getDayName(row.datum)}
-                </span>
-                <Input
-                  type="time" value={row.startzeit} disabled={!row.active} className="w-24"
-                  onChange={(e) => {
-                    const updated = [...monthlyRows];
-                    updated[i] = { ...updated[i], startzeit: e.target.value };
-                    setMonthlyRows(updated);
-                  }}
-                />
-                <span className="text-muted-foreground text-xs">bis</span>
-                <Input
-                  type="time" value={row.endzeit} disabled={!row.active} className="w-24"
-                  onChange={(e) => {
-                    const updated = [...monthlyRows];
-                    updated[i] = { ...updated[i], endzeit: e.target.value };
-                    setMonthlyRows(updated);
-                  }}
-                />
-                <Input
-                  type="number" value={row.pause} disabled={!row.active} className="w-16" placeholder="Pause"
-                  onChange={(e) => {
-                    const updated = [...monthlyRows];
-                    updated[i] = { ...updated[i], pause: e.target.value };
-                    setMonthlyRows(updated);
-                  }}
-                />
-                <span className="text-xs text-muted-foreground w-8">Min</span>
-                <input
-                  type="checkbox" checked={row.active}
-                  onChange={(e) => {
-                    const updated = [...monthlyRows];
-                    updated[i] = { ...updated[i], active: e.target.checked };
-                    setMonthlyRows(updated);
-                  }}
-                  className="accent-primary"
-                />
-                {row.active && row.startzeit && row.endzeit && (
-                  <span className="text-xs font-medium text-foreground w-12">
-                    {calcHours(row.startzeit, row.endzeit, Number(row.pause)).toFixed(1)}h
+          <p className="text-xs text-muted-foreground">Haken setzen/entfernen um Tage zu aktivieren. Sonntage und bereits vorhandene Tage sind deaktiviert.</p>
+          <div className="space-y-1 mt-2">
+            {monthlyRows.map((row, i) => {
+              const dayName = getDayName(row.datum);
+              const isSunday = dayName === "So";
+              return (
+                <div key={row.datum} className={`flex items-center gap-2 py-1.5 px-2 rounded text-sm ${isSunday ? "bg-muted/50 opacity-50" : ""}`}>
+                  <input
+                    type="checkbox" checked={row.active} className="accent-primary"
+                    onChange={(e) => {
+                      const u = [...monthlyRows]; u[i] = { ...u[i], active: e.target.checked }; setMonthlyRows(u);
+                    }}
+                  />
+                  <span className="w-14 font-medium text-foreground">{row.datum.split("-")[2]}. {dayName}</span>
+                  <Input type="time" value={row.startzeit} disabled={!row.active} className="w-24 h-8 text-xs"
+                    onChange={(e) => { const u = [...monthlyRows]; u[i] = { ...u[i], startzeit: e.target.value }; setMonthlyRows(u); }}
+                  />
+                  <span className="text-muted-foreground">-</span>
+                  <Input type="time" value={row.endzeit} disabled={!row.active} className="w-24 h-8 text-xs"
+                    onChange={(e) => { const u = [...monthlyRows]; u[i] = { ...u[i], endzeit: e.target.value }; setMonthlyRows(u); }}
+                  />
+                  <Input type="number" value={row.pause} disabled={!row.active} className="w-14 h-8 text-xs" placeholder="P"
+                    onChange={(e) => { const u = [...monthlyRows]; u[i] = { ...u[i], pause: e.target.value }; setMonthlyRows(u); }}
+                  />
+                  <span className="text-xs text-muted-foreground">Min</span>
+                  <span className="text-xs font-medium text-foreground w-10 text-right">
+                    {row.active && row.startzeit && row.endzeit ? `${calcHours(row.startzeit, row.endzeit, Number(row.pause)).toFixed(1)}h` : ""}
                   </span>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
-          <div className="flex justify-between mt-4 pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t">
+            <p className="text-sm font-medium text-foreground">
               Gesamt: {monthlyRows.filter((r) => r.active && r.startzeit && r.endzeit)
                 .reduce((s, r) => s + calcHours(r.startzeit, r.endzeit, Number(r.pause)), 0).toFixed(1)}h
-            </div>
+              {monthlyMA && (() => {
+                const ma = mitarbeiter.find((m) => m.id === Number(monthlyMA));
+                return ma ? ` / ${ma.monatlicheStunden}h Soll` : "";
+              })()}
+            </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowMonthlyForm(false)}>Abbrechen</Button>
-              <Button onClick={handleMonthlySave}>Alle speichern</Button>
+              <Button variant="outline" onClick={() => setMonthlyEditOpen(false)}>Abbrechen</Button>
+              <Button onClick={handleMonthlySave}>Speichern</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Monthly MA selector (when clicking "Monatlich" button) */}
-      <Dialog open={!showMonthlyForm && monthlyRows.length === 0 && showDailyForm === false && autoFillDialog === false && monthlyMA === ""} onOpenChange={() => {}}>
-        {/* This is handled inline */}
+      {/* Auto Fill */}
+      <Dialog open={autoFillOpen} onOpenChange={setAutoFillOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-display">Monat automatisch ausfuellen</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground mb-3">
+            Generiert Eintraege fuer <strong>{MONTHS[viewMonth]} {viewYear}</strong> basierend auf Vertragsstunden.
+            Beachtet: Max. 10h/Tag, Pflichtpausen, keine Sonntage, bereits vorhandene Eintraege.
+          </p>
+          <div>
+            <Label>Mitarbeiter</Label>
+            <Select value={autoFillMA} onValueChange={setAutoFillMA}>
+              <SelectTrigger><SelectValue placeholder="Waehlen..." /></SelectTrigger>
+              <SelectContent>
+                {mitarbeiter.filter((m) => m.status === "aktiv").map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.vorname} {m.nachname} ({VERTRAGSTYP_LABELS[m.vertragstyp]}, {m.monatlicheStunden}h/Monat)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setAutoFillOpen(false)}>Abbrechen</Button>
+            <Button onClick={handleAutoFill} disabled={!autoFillMA}><Wand2 className="h-4 w-4 mr-1" /> Generieren</Button>
+          </div>
+        </DialogContent>
       </Dialog>
-
-      {/* Separate dialog for MA selection for monthly form */}
-      {!showMonthlyForm && (
-        <Dialog open={monthlyMA === "" && showMonthlyForm === false && showDailyForm === false && autoFillDialog === false ? false : false}>
-          <DialogContent />
-        </Dialog>
-      )}
     </div>
   );
 }
