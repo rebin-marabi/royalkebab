@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, Clock, Receipt, Settings } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Clock, Receipt, Landmark, Settings } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -8,6 +8,7 @@ const navItems = [
   { path: "/vertraege", label: "Verträge", icon: FileText },
   { path: "/stunden", label: "Stunden", icon: Clock },
   { path: "/rechnungen", label: "Rechnungen", icon: Receipt },
+  { path: "/kontoauszuege", label: "Kontoauszüge", icon: Landmark },
   { path: "/einstellungen", label: "Einstellungen", icon: Settings },
 ];
 

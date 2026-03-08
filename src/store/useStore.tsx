@@ -44,6 +44,16 @@ export interface RechnungData {
   hochgeladenAm: string;
 }
 
+export interface KontoauszugData {
+  id: number;
+  monat: string;
+  dateiName: string;
+  dateiTyp: string;
+  dateiData: string;
+  beschreibung: string;
+  hochgeladenAm: string;
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
@@ -192,6 +202,9 @@ interface StoreContextType {
   rechnungen: RechnungData[];
   addRechnung: (r: Omit<RechnungData, "id">) => void;
   deleteRechnung: (id: number) => void;
+  kontoauszuege: KontoauszugData[];
+  addKontoauszug: (k: Omit<KontoauszugData, "id">) => void;
+  deleteKontoauszug: (id: number) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
@@ -209,6 +222,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [vorlagen, setVorlagen] = useState<VertragsVorlage[]>(createVorlagen());
   const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
   const [rechnungen, setRechnungen] = useState<RechnungData[]>([]);
+  const [kontoauszuege, setKontoauszuege] = useState<KontoauszugData[]>([]);
 
   const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
@@ -242,6 +256,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setRechnungen((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
+  const addKontoauszug = useCallback((k: Omit<KontoauszugData, "id">) => {
+    setKontoauszuege((prev) => [...prev, { ...k, id: Date.now() }]);
+  }, []);
+
+  const deleteKontoauszug = useCallback((id: number) => {
+    setKontoauszuege((prev) => prev.filter((k) => k.id !== id));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -249,6 +271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       vorlagen, updateVorlage,
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
+      kontoauszuege, addKontoauszug, deleteKontoauszug,
     }}>
       {children}
     </StoreContext.Provider>
