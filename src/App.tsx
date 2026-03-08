@@ -10,6 +10,7 @@ import Mitarbeiter from "./pages/Mitarbeiter";
 import MitarbeiterDetail from "./pages/MitarbeiterDetail";
 import Vertraege from "./pages/Vertraege";
 import Stunden from "./pages/Stunden";
+import Rechnungen from "./pages/Rechnungen";
 import Einstellungen from "./pages/Einstellungen";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/mitarbeiter/:id" element={<MitarbeiterDetail />} />
               <Route path="/vertraege" element={<Vertraege />} />
               <Route path="/stunden" element={<Stunden />} />
+              <Route path="/rechnungen" element={<Rechnungen />} />
               <Route path="/einstellungen" element={<Einstellungen />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

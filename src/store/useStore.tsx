@@ -33,6 +33,17 @@ export interface MitarbeiterData {
   status: "aktiv" | "inaktiv";
 }
 
+export interface RechnungData {
+  id: number;
+  monat: string; // "YYYY-MM"
+  dateiName: string;
+  dateiTyp: string;
+  dateiData: string; // base64
+  beschreibung: string;
+  betrag?: number;
+  hochgeladenAm: string;
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
@@ -178,6 +189,9 @@ interface StoreContextType {
   addStunden: (entries: StundenEintrag[]) => void;
   deleteStunde: (id: number) => void;
   deleteStundenForMonth: (maId: number, monthPrefix: string) => void;
+  rechnungen: RechnungData[];
+  addRechnung: (r: Omit<RechnungData, "id">) => void;
+  deleteRechnung: (id: number) => void;
 }
 
 const initialStunden: StundenEintrag[] = [
@@ -194,6 +208,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [arbeitgeber, setArbeitgeber] = useState<ArbeitgeberDaten>(defaultArbeitgeber);
   const [vorlagen, setVorlagen] = useState<VertragsVorlage[]>(createVorlagen());
   const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
+  const [rechnungen, setRechnungen] = useState<RechnungData[]>([]);
 
   const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
@@ -219,12 +234,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setStunden((prev) => prev.filter((s) => !(s.mitarbeiterId === maId && s.datum.startsWith(monthPrefix))));
   }, []);
 
+  const addRechnung = useCallback((r: Omit<RechnungData, "id">) => {
+    setRechnungen((prev) => [...prev, { ...r, id: Date.now() }]);
+  }, []);
+
+  const deleteRechnung = useCallback((id: number) => {
+    setRechnungen((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
       arbeitgeber, setArbeitgeber,
       vorlagen, updateVorlage,
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
+      rechnungen, addRechnung, deleteRechnung,
     }}>
       {children}
     </StoreContext.Provider>
