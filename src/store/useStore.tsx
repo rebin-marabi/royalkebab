@@ -54,6 +54,26 @@ export interface KontoauszugData {
   hochgeladenAm: string;
 }
 
+export interface RateZahlung {
+  id: number;
+  datum: string;
+  betrag: number;
+  notiz: string;
+}
+
+export interface SchuldenData {
+  id: number;
+  bezeichnung: string;
+  beschreibung: string;
+  gesamtbetrag: number;
+  ratenBetrag: number;
+  startDatum: string;
+  faelligkeitTag: number; // Tag im Monat (1-28)
+  intervall: "monatlich" | "vierteljaehrlich" | "jaehrlich";
+  zahlungen: RateZahlung[];
+  status: "aktiv" | "abgeschlossen";
+}
+
 export interface ArbeitgeberDaten {
   name: string;
   adresse: string;
