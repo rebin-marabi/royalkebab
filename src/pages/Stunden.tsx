@@ -168,6 +168,86 @@ export default function Stunden() {
     toast({ title: "Monat geloescht" });
   };
 
+  // === PDF Export ===
+  const exportPDF = (ma: MitarbeiterData) => {
+    const entries = stunden.filter((s) => s.mitarbeiterId === ma.id && s.datum.startsWith(monthPrefix));
+    if (entries.length === 0) {
+      toast({ title: "Keine Eintraege", description: "Keine Stunden fuer diesen Monat vorhanden.", variant: "destructive" });
+      return;
+    }
+    entries.sort((a, b) => a.datum.localeCompare(b.datum));
+    const totalHours = entries.reduce((sum, e) => sum + calcHours(e.startzeit, e.endzeit, e.pause), 0);
+    const sollHours = getMonthSollStunden(ma);
+
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const margin = 15;
+    let y = 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Arbeitszeitnachweis", margin, y);
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`${ma.vorname} ${ma.nachname}`, margin, y);
+    y += 6;
+    doc.text(`${MONTHS[viewMonth]} ${viewYear}`, margin, y);
+    y += 6;
+    doc.text(`Vertragstyp: ${VERTRAGSTYP_LABELS[ma.vertragstyp]}`, margin, y);
+    y += 10;
+
+    // Table header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Datum", margin, y);
+    doc.text("Von", margin + 30, y);
+    doc.text("Bis", margin + 50, y);
+    doc.text("Pause", margin + 70, y);
+    doc.text("Stunden", margin + 95, y);
+    doc.text("Notiz", margin + 120, y);
+    y += 2;
+    doc.line(margin, y, 195, y);
+    y += 5;
+
+    doc.setFont("helvetica", "normal");
+    for (const e of entries) {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      const hours = calcHours(e.startzeit, e.endzeit, e.pause);
+      const dayName = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][new Date(e.datum).getDay()];
+      doc.text(`${e.datum.split("-")[2]}.${e.datum.split("-")[1]}. ${dayName}`, margin, y);
+      doc.text(e.startzeit, margin + 30, y);
+      doc.text(e.endzeit, margin + 50, y);
+      doc.text(`${e.pause} Min`, margin + 70, y);
+      doc.text(`${hours.toFixed(1)}h`, margin + 95, y);
+      doc.text(e.notiz || "", margin + 120, y);
+      y += 6;
+    }
+
+    y += 5;
+    doc.line(margin, y, 195, y);
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Gesamt: ${totalHours.toFixed(1)} Stunden`, margin, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Soll: ${sollHours} Stunden`, margin, y);
+    y += 6;
+    const diff = totalHours - sollHours;
+    doc.text(`Differenz: ${diff >= 0 ? "+" : ""}${diff.toFixed(1)} Stunden`, margin, y);
+
+    y += 20;
+    doc.text("Unterschrift Arbeitnehmer: _________________________", margin, y);
+    y += 10;
+    doc.text("Unterschrift Arbeitgeber: _________________________", margin, y);
+
+    doc.save(`Stunden_${ma.nachname}_${ma.vorname}_${MONTHS[viewMonth]}_${viewYear}.pdf`);
+    toast({ title: "PDF heruntergeladen" });
+  };
+
   return (
     <div>
       {/* Header */}
