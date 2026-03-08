@@ -10,6 +10,7 @@ import Mitarbeiter from "./pages/Mitarbeiter";
 import MitarbeiterDetail from "./pages/MitarbeiterDetail";
 import Vertraege from "./pages/Vertraege";
 import Stunden from "./pages/Stunden";
+import Rechnungen from "./pages/Rechnungen";
 import Einstellungen from "./pages/Einstellungen";
 import NotFound from "./pages/NotFound";
 
