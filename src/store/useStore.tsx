@@ -317,6 +317,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSchulden((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
   }, []);
 
+  const toggleMonatStatus = useCallback((schuldenId: number, monat: string) => {
+    setSchulden((prev) => prev.map((s) => {
+      if (s.id !== schuldenId) return s;
+      const existing = s.monatsStatus.find(m => m.monat === monat);
+      if (existing) {
+        return { ...s, monatsStatus: s.monatsStatus.map(m => m.monat === monat ? { ...m, bezahlt: !m.bezahlt, datum: !m.bezahlt ? format(new Date(), "yyyy-MM-dd") : undefined } : m) };
+      }
+      return { ...s, monatsStatus: [...s.monatsStatus, { monat, bezahlt: true, datum: format(new Date(), "yyyy-MM-dd") }] };
+    }));
+  }, []);
+
   return (
     <StoreContext.Provider value={{
       mitarbeiter, addMitarbeiter, updateMitarbeiter,
@@ -325,7 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stunden, setStunden, addStunden, deleteStunde, deleteStundenForMonth,
       rechnungen, addRechnung, deleteRechnung,
       kontoauszuege, addKontoauszug, deleteKontoauszug,
-      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus,
+      schulden, addSchulden, deleteSchulden, addZahlung, updateSchuldenStatus, toggleMonatStatus,
     }}>
       {children}
     </StoreContext.Provider>
