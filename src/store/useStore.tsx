@@ -222,6 +222,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [vorlagen, setVorlagen] = useState<VertragsVorlage[]>(createVorlagen());
   const [stunden, setStunden] = useState<StundenEintrag[]>(initialStunden);
   const [rechnungen, setRechnungen] = useState<RechnungData[]>([]);
+  const [kontoauszuege, setKontoauszuege] = useState<KontoauszugData[]>([]);
 
   const addMitarbeiter = useCallback((ma: Omit<MitarbeiterData, "id">) => {
     setMitarbeiter((prev) => [...prev, { ...ma, id: Date.now() }]);
