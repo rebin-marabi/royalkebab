@@ -302,11 +302,18 @@ export default function Stunden() {
                   {VERTRAGSTYP_LABELS[m.vertragstyp]}
                 </span>
               </div>
-              {m.entries > 0 && (
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteMonthForMA(m.id)} title="Alle Eintraege dieses Monats loeschen">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
+              <div className="flex gap-1">
+                {m.entries > 0 && (
+                  <>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => exportPDF(m)} title="Stunden als PDF">
+                      <FileDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => deleteMonthForMA(m.id)} title="Alle Eintraege dieses Monats loeschen">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="mt-3 flex items-end gap-2">
               <p className="text-2xl font-bold font-display text-primary">{m.totalHours.toFixed(1)}h</p>
