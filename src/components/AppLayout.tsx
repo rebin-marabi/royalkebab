@@ -55,6 +55,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             Abmelden
           </button>
         </div>
+      </aside>
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-6xl mx-auto animate-fade-in">
           {children}
