@@ -84,6 +84,41 @@ export default function Einstellungen() {
         <Button onClick={saveArbeitgeber} className="mt-4"><Save className="h-4 w-4 mr-2" /> Speichern</Button>
       </div>
 
+      {/* Passwort ändern */}
+      <div className="bg-card rounded-lg border p-6 mb-6">
+        <h2 className="text-lg font-bold font-display text-foreground mb-4 flex items-center gap-2">
+          <Lock className="h-5 w-5 text-primary" /> Passwort ändern
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">Admin-Zugangspasswort ändern.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label>Aktuelles Passwort</Label>
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="••••••"
+              />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>Neues Passwort</Label>
+            <Input type={showPw ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min. 4 Zeichen" />
+          </div>
+          <div>
+            <Label>Passwort bestätigen</Label>
+            <Input type={showPw ? "text" : "password"} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Wiederholen" />
+          </div>
+        </div>
+        <Button onClick={handleChangePw} className="mt-4" disabled={!currentPw || !newPw || !confirmPw}>
+          <Save className="h-4 w-4 mr-2" /> Passwort ändern
+        </Button>
+      </div>
+
       {/* Vertragsvorlagen */}
       <div className="bg-card rounded-lg border p-6">
         <h2 className="text-lg font-bold font-display text-foreground mb-4">Vertragsvorlagen</h2>
