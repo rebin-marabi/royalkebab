@@ -11,10 +11,34 @@ import { toast } from "@/hooks/use-toast";
 
 export default function Einstellungen() {
   const { arbeitgeber, setArbeitgeber, vorlagen, updateVorlage } = useStore();
+  const { changePassword } = useAuth();
   const [agForm, setAgForm] = useState<ArbeitgeberDaten>(arbeitgeber);
   const [editingParagraph, setEditingParagraph] = useState<{ typ: Vertragstyp; index: number } | null>(null);
   const [editText, setEditText] = useState("");
   const [editTitel, setEditTitel] = useState("");
+
+  // Passwort ändern
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+  const handleChangePw = () => {
+    if (newPw.length < 4) {
+      toast({ title: "Fehler", description: "Neues Passwort muss mindestens 4 Zeichen haben.", variant: "destructive" });
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast({ title: "Fehler", description: "Passwörter stimmen nicht überein.", variant: "destructive" });
+      return;
+    }
+    if (changePassword(currentPw, newPw)) {
+      toast({ title: "Gespeichert", description: "Passwort wurde geändert." });
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    } else {
+      toast({ title: "Fehler", description: "Aktuelles Passwort ist falsch.", variant: "destructive" });
+    }
+  };
 
   const saveArbeitgeber = () => {
     setArbeitgeber(agForm);
