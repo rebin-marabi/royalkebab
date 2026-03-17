@@ -1,19 +1,44 @@
 import { useState } from "react";
 import { useStore, ArbeitgeberDaten, Vertragstyp, VERTRAGSTYP_LABELS } from "@/store/useStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Pencil } from "lucide-react";
+import { Save, Pencil, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function Einstellungen() {
   const { arbeitgeber, setArbeitgeber, vorlagen, updateVorlage } = useStore();
+  const { changePassword } = useAuth();
   const [agForm, setAgForm] = useState<ArbeitgeberDaten>(arbeitgeber);
   const [editingParagraph, setEditingParagraph] = useState<{ typ: Vertragstyp; index: number } | null>(null);
   const [editText, setEditText] = useState("");
   const [editTitel, setEditTitel] = useState("");
+
+  // Passwort ändern
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+  const handleChangePw = () => {
+    if (newPw.length < 4) {
+      toast({ title: "Fehler", description: "Neues Passwort muss mindestens 4 Zeichen haben.", variant: "destructive" });
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast({ title: "Fehler", description: "Passwörter stimmen nicht überein.", variant: "destructive" });
+      return;
+    }
+    if (changePassword(currentPw, newPw)) {
+      toast({ title: "Gespeichert", description: "Passwort wurde geändert." });
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    } else {
+      toast({ title: "Fehler", description: "Aktuelles Passwort ist falsch.", variant: "destructive" });
+    }
+  };
 
   const saveArbeitgeber = () => {
     setArbeitgeber(agForm);
@@ -57,6 +82,41 @@ export default function Einstellungen() {
           <div><Label>Ort</Label><Input value={agForm.ort} onChange={(e) => setAgForm({ ...agForm, ort: e.target.value })} /></div>
         </div>
         <Button onClick={saveArbeitgeber} className="mt-4"><Save className="h-4 w-4 mr-2" /> Speichern</Button>
+      </div>
+
+      {/* Passwort ändern */}
+      <div className="bg-card rounded-lg border p-6 mb-6">
+        <h2 className="text-lg font-bold font-display text-foreground mb-4 flex items-center gap-2">
+          <Lock className="h-5 w-5 text-primary" /> Passwort ändern
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">Admin-Zugangspasswort ändern.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label>Aktuelles Passwort</Label>
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="••••••"
+              />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>Neues Passwort</Label>
+            <Input type={showPw ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min. 4 Zeichen" />
+          </div>
+          <div>
+            <Label>Passwort bestätigen</Label>
+            <Input type={showPw ? "text" : "password"} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Wiederholen" />
+          </div>
+        </div>
+        <Button onClick={handleChangePw} className="mt-4" disabled={!currentPw || !newPw || !confirmPw}>
+          <Save className="h-4 w-4 mr-2" /> Passwort ändern
+        </Button>
       </div>
 
       {/* Vertragsvorlagen */}

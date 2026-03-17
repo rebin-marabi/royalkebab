@@ -1,16 +1,21 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (password: string) => boolean;
   logout: () => void;
+  changePassword: (currentPw: string, newPw: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Simple hash for localStorage (NOT cryptographically secure - placeholder until DB)
 const STORAGE_KEY = "rk_auth_session";
-const ADMIN_PASS = "royal2025"; // TODO: Replace with DB-based auth
+const PW_STORAGE_KEY = "rk_admin_pw";
+const DEFAULT_PASS = "royal2025";
+
+function getPassword(): string {
+  return localStorage.getItem(PW_STORAGE_KEY) || DEFAULT_PASS;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -18,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const login = useCallback((password: string): boolean => {
-    if (password === ADMIN_PASS) {
+    if (password === getPassword()) {
       setIsAuthenticated(true);
       sessionStorage.setItem(STORAGE_KEY, "true");
       return true;
@@ -31,8 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const changePassword = useCallback((currentPw: string, newPw: string): boolean => {
+    if (currentPw !== getPassword()) return false;
+    localStorage.setItem(PW_STORAGE_KEY, newPw);
+    return true;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
