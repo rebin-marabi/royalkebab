@@ -16,6 +16,7 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const { logout } = useAuth();
 
   return (
     <div className="flex min-h-screen">
