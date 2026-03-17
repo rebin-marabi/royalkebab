@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useStore, ArbeitgeberDaten, Vertragstyp, VERTRAGSTYP_LABELS } from "@/store/useStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Pencil } from "lucide-react";
+import { Save, Pencil, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function Einstellungen() {
